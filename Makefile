@@ -1,10 +1,11 @@
 .PHONY: clean all test check check-syntax
 
+CLANG=clang
 PACKAGES=sdl2 gl glu glew
 CFLAGS=-Wall -Wextra -fstrict-aliasing -Wstrict-aliasing -fms-extensions -std=gnu11 -g -O3 -Ivendor `pkg-config --cflags $(PACKAGES)`
-LDFLAGS=`pkg-config --libs $(PACKAGES)`
+LDFLAGS=`pkg-config --libs $(PACKAGES)` -lpnglite -lz
 VPATH=src
-SRC=
+SRC=tilemap.c shader.c main.c
 OBJECTS=$(addprefix obj/, $(SRC:.c=.o))
 DEPS=$(OBJECTS:%.o=%.d)
 CLEAN=$(OBJECTS) $(DEPS) obj/squid
