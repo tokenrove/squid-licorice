@@ -24,7 +24,7 @@ static void log_shader_errors(const char *fn, GLuint object)
      ENSURE(log);
      (*fns[is_program].log)(object, len, NULL, log);
      GLint type;
-     char *name;
+     const char *name;
      if(is_program)
           name = "program";
      else {

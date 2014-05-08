@@ -60,9 +60,9 @@ bool tilemap_load(char *map_path, char *atlas_path, struct tilemap *t)
     // load map
     FILE *fp = fopen(map_path, "r");
     ENSURE(fp);
-    uint8_t buffer[4], *magic = (uint8_t*)"MAP\x01";
+    uint8_t buffer[4];
     ENSURE(4 == fread(buffer, 1, 4, fp));
-    for (int i = 0; i < 4; ++i) ENSURE(buffer[i] == magic[i]);
+    for (int i = 0; i < 4; ++i) ENSURE(buffer[i] == "MAP\x01"[i]);
     struct {
         uint16_t width, height;
         uint8_t *map;
