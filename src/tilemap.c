@@ -51,7 +51,7 @@ void tilemap_init(void)
     texture_init();
 }
 
-bool tilemap_load(char *map_path, char *atlas_path, struct tilemap *t)
+bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *t)
 {
     *t = (struct tilemap){0};
 

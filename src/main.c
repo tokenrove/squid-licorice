@@ -66,6 +66,7 @@ int main(/* int argc, char **argv */)
                 break;
             case SDL_QUIT:
                 return EXIT_SUCCESS;
+            default: /* ignore */ break;
             }
         }
     }
