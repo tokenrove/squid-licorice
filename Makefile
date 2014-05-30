@@ -5,7 +5,7 @@ PACKAGES=sdl2 gl glu glew
 CFLAGS=-Wall -Wextra -Wshadow -Winit-self -Wwrite-strings -Wswitch-enum -Wswitch-default -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wdouble-promotion -Wformat-security -fstrict-aliasing -Wstrict-aliasing -fms-extensions -std=gnu11 -g -O3 -Ivendor `pkg-config --cflags $(PACKAGES)`
 LDFLAGS=-fwhole-program `pkg-config --libs $(PACKAGES)` -lpnglite -lz
 VPATH=src
-SRC=texture.c shader.c tilemap.c main.c
+SRC=texture.c shader.c tilemap.c text.c main.c
 OBJECTS=$(addprefix obj/, $(SRC:.c=.o))
 DEPS=$(OBJECTS:%.o=%.d)
 CLEAN=$(OBJECTS) $(DEPS) obj/squid

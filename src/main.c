@@ -4,6 +4,7 @@
 
 #include "ensure.h"
 #include "tilemap.h"
+#include "text.h"
 
 SDL_Window *sdl_window;
 
@@ -49,11 +50,15 @@ int main(/* int argc, char **argv */)
     struct tilemap t;
     ENSURE(tilemap_load("map", "atlas.png", &t));
 
+    struct font font;
+    ENSURE(text_load_font(&font, "myfont"));
+
     while (1) {
         glClearColor(.8, .6, .5, 1.);
         glClear(GL_COLOR_BUFFER_BIT);
 
         tilemap_draw(&t, mv_matrix, projection_matrix);
+        text_render_line(&font, (position){50, 50}, 0xffffffff, "This is a test!");
 
         SDL_GL_SwapWindow(sdl_window);
 
@@ -71,7 +76,9 @@ int main(/* int argc, char **argv */)
         }
     }
 
+    text_destroy_font(&font);
     tilemap_destroy(&t);
+
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(sdl_window);
     return 0;
