@@ -45,6 +45,7 @@ int main(/* int argc, char **argv */)
     // setup GL for sprites
     glDisable(GL_DEPTH_TEST);
 
+    tilemap_init();
     struct tilemap t;
     ENSURE(tilemap_load("map", "atlas.png", &t));
 

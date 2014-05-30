@@ -1,10 +1,9 @@
+#include <stdio.h>
+
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-#include <pnglite.h>
 #include <arpa/inet.h>
-
-#include <stdbool.h>
 
 #include "ensure.h"
 #include "shader.h"
@@ -47,6 +46,11 @@ void main() {                                           \
 }                                                       \
 ";
 
+void tilemap_init(void)
+{
+    texture_init();
+}
+
 bool tilemap_load(char *map_path, char *atlas_path, struct tilemap *t)
 {
     *t = (struct tilemap){0};
@@ -85,40 +89,22 @@ bool tilemap_load(char *map_path, char *atlas_path, struct tilemap *t)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     free(map.map);
 
-    // load atlas
-    png_t atlas_png;
-    png_init(NULL, NULL);
-    ENSURE(PNG_NO_ERROR == png_open_file(&atlas_png, atlas_path));
-    uint8_t *atlas_pels;
-    atlas_pels = malloc(atlas_png.width*atlas_png.height*atlas_png.bpp);
-    ENSURE(atlas_pels);
-    ENSURE(PNG_NO_ERROR == png_get_data(&atlas_png, atlas_pels));
-
-    glGenTextures(1, &t->atlas_texture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, t->atlas_texture);
-    GLuint mode = (atlas_png.color_type == PNG_TRUECOLOR_ALPHA) ? GL_RGBA : GL_RGB;
-    ENSURE(atlas_png.color_type == PNG_TRUECOLOR_ALPHA ||
-           atlas_png.color_type == PNG_TRUECOLOR);
-    glTexImage2D(GL_TEXTURE_2D, 0, mode, atlas_png.width, atlas_png.height, 0, mode, GL_UNSIGNED_BYTE, atlas_pels);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    png_close_file(&atlas_png);
-    free(atlas_pels);
+    t->atlas_texture = texture_from_png(atlas_path);
+    ENSURE(-1 != t->atlas_texture.id);
 
     t->shader = build_shader_program("tilemap", tilemap_vertex_shader_src, tilemap_fragment_shader_src);
-    if (t->shader == 0) return false; /* XXX handle this error better */
+    if (0 == t->shader) return false; /* XXX handle this error better */
 
+    // XXX urk, obviously not fixed vertices
     const GLfloat vertices[] = { 0., 0., 720., 0., 720., 240., 0., 240. };
     glGenBuffers(1, &t->a_vertices);
     glBindBuffer(GL_ARRAY_BUFFER, t->a_vertices);
     glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
 
-    t->dims[0] = (float)map.width*atlas_png.width;
-    t->dims[1] = (float)map.height*atlas_png.width;
-    t->dims[2] = (float)atlas_png.width;
-    t->dims[3] = (float)atlas_png.height;
+    t->dims[0] = (float)map.width*t->atlas_texture.width;
+    t->dims[1] = (float)map.height*t->atlas_texture.width; // tile height, but we assume it's the same, here
+    t->dims[2] = (float)t->atlas_texture.width;
+    t->dims[3] = (float)t->atlas_texture.height;
 
     return true;
 }
@@ -126,6 +112,11 @@ bool tilemap_load(char *map_path, char *atlas_path, struct tilemap *t)
 void tilemap_draw(struct tilemap *t, float *mv_matrix, float *projection_matrix)
 {
     uint8_t indices[] = { 0,1,2, 2,3,0 };
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, t->atlas_texture.id);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, t->map_texture);
 
     glUseProgram(t->shader);
 
@@ -153,7 +144,7 @@ void tilemap_draw(struct tilemap *t, float *mv_matrix, float *projection_matrix)
 void tilemap_destroy(struct tilemap *t)
 {
     glDeleteTextures(1, &t->map_texture);
-    glDeleteTextures(1, &t->atlas_texture);
+    glDeleteTextures(1, &t->atlas_texture.id);
     glDeleteBuffers(1, &t->a_vertices);
     glDeleteProgram(t->shader);
     *t = (struct tilemap){0};
