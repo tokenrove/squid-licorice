@@ -89,8 +89,7 @@ bool tilemap_load(char *map_path, char *atlas_path, struct tilemap *t)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     free(map.map);
 
-    t->atlas_texture = texture_from_png(atlas_path);
-    ENSURE(-1 != t->atlas_texture.id);
+    ENSURE(texture_from_png(&t->atlas_texture, atlas_path));
 
     t->shader = build_shader_program("tilemap", tilemap_vertex_shader_src, tilemap_fragment_shader_src);
     if (0 == t->shader) return false; /* XXX handle this error better */

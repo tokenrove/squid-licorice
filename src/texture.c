@@ -16,9 +16,9 @@ void texture_init(void)
     png_init(NULL, NULL);
 }
 
-struct texture texture_from_png(const char *path)
+bool texture_from_png(struct texture *t, const char *path)
 {
-    struct texture t = { 0, .id = -1 };
+    *t = (struct texture){0};
 
     png_t png;
     ENSURE(PNG_NO_ERROR == png_open_file(&png, path));
@@ -27,12 +27,12 @@ struct texture texture_from_png(const char *path)
     ENSURE(pels);
     ENSURE(PNG_NO_ERROR == png_get_data(&png, pels));
 
-    t.width = png.width;
-    t.height = png.height;
+    t->width = png.width;
+    t->height = png.height;
 
-    glGenTextures(1, &t.id);
+    glGenTextures(1, &t->id);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, t.id);
+    glBindTexture(GL_TEXTURE_2D, t->id);
     GLuint mode = (png.color_type == PNG_TRUECOLOR_ALPHA) ? GL_RGBA : GL_RGB;
     ENSURE(png.color_type == PNG_TRUECOLOR_ALPHA ||
            png.color_type == PNG_TRUECOLOR);
@@ -43,5 +43,5 @@ struct texture texture_from_png(const char *path)
     png_close_file(&png);
     free(pels);
 
-    return t;
+    return true;
 }
