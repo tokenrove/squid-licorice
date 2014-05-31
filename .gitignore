@@ -1,0 +1,8 @@
+# emacs saves
+*~
+
+# python output
+*.pyc
+
+# build output
+obj/
