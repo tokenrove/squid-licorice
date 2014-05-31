@@ -51,44 +51,32 @@ void tilemap_init(void)
     texture_init();
 }
 
-bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *t)
+static void load_map(struct tilemap *t, const char *path)
 {
-    *t = (struct tilemap){0};
-
-    // reset pixel store: can we use a pack/unpack alignment of 4 here?
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-
-    // load map
-    FILE *fp = fopen(map_path, "r");
+    FILE *fp = fopen(path, "r");
     ENSURE(fp);
     uint8_t buffer[4];
     ENSURE(4 == fread(buffer, 1, 4, fp));
     for (int i = 0; i < 4; ++i) ENSURE(buffer[i] == "MAP\x01"[i]);
-    struct {
-        uint16_t width, height;
-        uint8_t *map;
-    } map;
-    ENSURE(1 == fread(&map.width, 2, 1, fp));
-    map.width = ntohs(map.width);
-    ENSURE(1 == fread(&map.height, 2, 1, fp));
-    map.height = ntohs(map.height);
-    size_t n = map.width*map.height;
-    map.map = malloc(n);
-    ENSURE(map.map);
-    ENSURE(fread(map.map, 1, n, fp) == n);
+    uint16_t width, height;
+    uint8_t *data;
+    ENSURE(1 == fread(&width, 2, 1, fp));
+    width = ntohs(width);
+    ENSURE(1 == fread(&height, 2, 1, fp));
+    height = ntohs(height);
+    size_t n = width*height;
+    ENSURE(data = malloc(n));
+    ENSURE(fread(data, 1, n, fp) == n);
     fclose(fp);
-    glGenTextures(1, &t->map_texture);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, t->map_texture);
-    // XXX needs to be power of 2? what about alignment by 4s?
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, map.width, map.height, 0, GL_RED, GL_UNSIGNED_BYTE, map.map);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    free(map.map);
+    ENSURE(texture_from_pels(&t->map_texture, data, width, height, 1));
+    free(data);
+}
 
+bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *t)
+{
+    *t = (struct tilemap){0};
+
+    load_map(t, map_path);
     ENSURE(texture_from_png(&t->atlas_texture, atlas_path));
 
     t->shader = build_shader_program("tilemap", tilemap_vertex_shader_src, tilemap_fragment_shader_src);
@@ -100,8 +88,10 @@ bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *
     glBindBuffer(GL_ARRAY_BUFFER, t->a_vertices);
     glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
 
-    t->dims[0] = (float)map.width*t->atlas_texture.width;
-    t->dims[1] = (float)map.height*t->atlas_texture.width; // tile height, but we assume it's the same, here
+    uint16_t tile_width = t->atlas_texture.width;
+    uint16_t tile_height = tile_width; // XXX we assume it's the same, here
+    t->dims[0] = (float)t->map_texture.width*tile_width;
+    t->dims[1] = (float)t->map_texture.height*tile_height;
     t->dims[2] = (float)t->atlas_texture.width;
     t->dims[3] = (float)t->atlas_texture.height;
 
@@ -115,7 +105,7 @@ void tilemap_draw(struct tilemap *t, float *mv_matrix, float *projection_matrix)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, t->atlas_texture.id);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, t->map_texture);
+    glBindTexture(GL_TEXTURE_2D, t->map_texture.id);
 
     glUseProgram(t->shader);
 
@@ -142,8 +132,8 @@ void tilemap_draw(struct tilemap *t, float *mv_matrix, float *projection_matrix)
 
 void tilemap_destroy(struct tilemap *t)
 {
-    glDeleteTextures(1, &t->map_texture);
-    glDeleteTextures(1, &t->atlas_texture.id);
+    texture_destroy(&t->map_texture);
+    texture_destroy(&t->atlas_texture);
     glDeleteBuffers(1, &t->a_vertices);
     glDeleteProgram(t->shader);
     *t = (struct tilemap){0};

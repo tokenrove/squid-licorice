@@ -5,9 +5,9 @@
 #include "texture.h"
 
 struct tilemap {
-    GLuint map_texture, shader, a_vertices;
+    GLuint shader, a_vertices;
     float dims[4];
-    struct texture atlas_texture;
+    struct texture atlas_texture, map_texture;
 };
 
 extern void tilemap_init(void);
