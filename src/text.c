@@ -23,6 +23,23 @@
         fputc('\n', stderr);                   \
     } while(0)
 
+
+static const GLchar text_vertex_shader_src[] = {
+#include "text.vert.i"
+    , 0 };
+static const GLchar text_fragment_shader_src[] = {
+#include "text.frag.i"
+    , 0 };
+static GLuint shader;
+
+void text_init(void)
+{
+    texture_init();
+    if (0 == shader)
+        shader = build_shader_program("text", text_vertex_shader_src, text_fragment_shader_src);
+    ENSURE(shader);
+}
+
 /*
  * path: NUL-terminated string containing the path to the font file
  * without extension (foo passed in loads foo.fnt and foo.png)

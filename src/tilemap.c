@@ -19,32 +19,13 @@
  * bit more of the work, which might be more efficient.  I doubt it
  * matters much, though.
  */
-static const GLchar tilemap_vertex_shader_src[] = " \
-attribute vec2 a_vertex;                                           \
-uniform mat4 u_projection;                                         \
-uniform mat4 u_modelview;                                          \
-varying vec2 v_texcoord;                                           \
-                                                                   \
-void main()                                                        \
-{                                                                  \
-  gl_Position = u_projection * u_modelview * vec4(a_vertex, 0., 1.);    \
-  v_texcoord = a_vertex;                                         \
-}";
-
-static const GLchar tilemap_fragment_shader_src[] = "\
-varying vec2 v_texcoord;                                \
-uniform sampler2D u_atlas;                              \
-uniform sampler2D u_map;                                \
-uniform vec4 u_map_atlas_dims;                          \
-                                                        \
-void main() {                                           \
-  vec2 map_coordinate = vec2(v_texcoord.x/u_map_atlas_dims.x, v_texcoord.y/u_map_atlas_dims.y);     \
-  float tile_idx = 255. * texture2D(u_map, map_coordinate).r;           \
-  vec2 atlas_coordinate = mod(v_texcoord, u_map_atlas_dims.z);                         \
-  atlas_coordinate.y += u_map_atlas_dims.z * tile_idx; /* XXX technically this is tile height, not width */ \
-  gl_FragColor = texture2D(u_atlas, vec2(atlas_coordinate.x/u_map_atlas_dims.z, atlas_coordinate.y/u_map_atlas_dims.w)); \
-}                                                       \
-";
+static const GLchar tilemap_vertex_shader_src[] = {
+#include "tilemap.vert.i"
+    , 0 };
+static const GLchar tilemap_fragment_shader_src[] = {
+#include "tilemap.frag.i"
+    , 0 };
+static GLuint shader;
 
 void tilemap_init(void)
 {
