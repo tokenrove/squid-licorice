@@ -21,7 +21,8 @@ int main(/* int argc, char **argv */)
     while (1) {
         video_start_frame();
         tilemap_draw(&t, camera_world_mv_matrix);
-        text_render_line(&font, 50.f + 50.f*I, 0xffffffff, "This is a test!");
+        text_render_line(&font, 50.f + 50.f*I, 0xff0000ff, "This is a test!");
+        text_render_line_with_shadow(&font, 50.f + 80.f*I, 0xff0000ff, "Hello, world.");
         video_end_frame();
 
         SDL_Event e;

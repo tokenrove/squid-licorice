@@ -3,5 +3,7 @@ uniform sampler2D u_font;
 uniform vec4 u_color;
 
 void main() {
-    gl_FragColor = u_color * texture2D(u_font, v_texcoord);
+    vec4 c = texture2D(u_font, v_texcoord);
+    if (c.a == 0.) discard;
+    gl_FragColor = c * u_color;
 }

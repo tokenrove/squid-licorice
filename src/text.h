@@ -8,7 +8,9 @@
 
 struct glyph {
     uint32_t char_code;         /* UCS4 character code */
-    int8_t x, y, w, h, x_offset, y_offset, x_advance;
+    uint16_t x, y;
+    uint8_t w, h;
+    int8_t x_offset, y_offset, x_advance;
 };
 
 /*
@@ -18,9 +20,11 @@ struct font {
     uint16_t n_glyphs;
     struct glyph *glyphs;
     struct texture texture;
+    GLuint a_vertices;
     int8_t printable_ascii_lookup[128-32]; /* Lookup table for characters from 32 to 127 */
 };
 
+extern void text_init(void);
 extern bool text_load_font(struct font *font, const char *path);
 extern void text_destroy_font(struct font *font);
 /**
@@ -29,5 +33,5 @@ extern void text_destroy_font(struct font *font);
  * color: RGBA color of text
  * s: UTF-8, NUL-terminated string to render
  */
-extern void text_render_line(struct font *font, position p, uint32_t color, const uint8_t *s);
-extern void text_render_line_with_shadow(struct font *font, position p, uint32_t color, const uint8_t *s);
+extern void text_render_line(struct font *font, position p, uint32_t color, const char *s);
+extern void text_render_line_with_shadow(struct font *font, position p, uint32_t color, const char *s);

@@ -12,10 +12,13 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <GL/glew.h>
 #include <GL/gl.h>
 
 #include "text.h"
 #include "ensure.h"
+#include "shader.h"
+#include "camera.h"
 
 #define LOG(message, ...) do {                 \
         fprintf(stderr, "%s: ", __func__);     \
@@ -79,7 +82,7 @@ bool text_load_font(struct font *font, const char *path)
         }
         // Also y_advance at the end of the line, but we ignore it.
         glyph = &font->glyphs[font->n_glyphs-1];
-        if (8 != sscanf(buf, "%u %hhd %hhd %hhd %hhd %hhd %hhd %hhd",
+        if (8 != sscanf(buf, "%u %hu %hu %hhu %hhu %hhd %hhd %hhd",
                         &glyph->char_code,
                         &glyph->x, &glyph->y, &glyph->w, &glyph->h,
                         &glyph->x_offset, &glyph->y_offset, &glyph->x_advance)) {
@@ -96,6 +99,8 @@ bool text_load_font(struct font *font, const char *path)
     if (false == r)
         return false;
 
+    glGenBuffers(1, &font->a_vertices);
+
     strncpy(buf, path, BUFLEN);
     strncat(buf, ".png", BUFLEN);
     return texture_from_png(&font->texture, buf);
@@ -104,15 +109,17 @@ bool text_load_font(struct font *font, const char *path)
 void text_destroy_font(struct font *font)
 {
     free(font->glyphs);
+    glDeleteBuffers(1, &font->a_vertices);
     memset(font, 0, sizeof (*font));
 }
 
-static struct glyph *lookup_glyph(struct font *font, const uint8_t **s)
+static struct glyph *lookup_glyph(struct font *font, const char **s)
 {
-    if (**s < 32) return NULL;
+    uint8_t c = **s;
+    if (c < 32) return NULL;
     int n = 0;
-    if (**s < 128) {
-        n = font->printable_ascii_lookup[**s - 32];
+    if (c < 128) {
+        n = font->printable_ascii_lookup[c - 32];
         if (n < 0) return NULL;
         return &font->glyphs[n];
     }
@@ -122,17 +129,22 @@ static struct glyph *lookup_glyph(struct font *font, const uint8_t **s)
     return NULL;
 }
 
-
-// render text
-//   look up glyph
-//   render glyph and advance
-//   - render one glyph at a time or queue up a bunch of points and texture coordinates and render them all at once?
-//     start by rendering one glyph at a time
-// simple shader
 static void render_glyph(struct glyph *g, position p)
 {
     // adjust camera
-    // pass in texture coordinates
+    float mv[16];
+    memcpy(mv, camera_screen_mv_matrix, sizeof (mv));
+    mv[12] = crealf(p);
+    mv[13] = cimagf(p);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader, "u_modelview"),
+                       1, GL_FALSE, mv);
+    glUniform2f(glGetUniformLocation(shader, "u_offset"), g->x, g->y);
+    const GLfloat vertices[] = { 0., 0., g->w, 0., g->w, g->h, 0., g->h };
+    glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
+
+    uint8_t indices[] = { 0,1,2, 2,3,0 };
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, indices);
 }
 
 // setup font shader if it's not already setup
@@ -141,9 +153,31 @@ static void render_glyph(struct glyph *g, position p)
 static void setup_shader(struct font *font, uint32_t color)
 {
     // XXX should assert thread identity
-    // load the shader
-    // use program
-    // setup uniforms
+    ENSURE(shader);
+
+    glUseProgram(shader);
+
+    glBindBuffer(GL_ARRAY_BUFFER, font->a_vertices);
+    GLint vertices_atloc = glGetAttribLocation(shader, "a_vertex");
+    glVertexAttribPointer(vertices_atloc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(vertices_atloc);
+    glEnableClientState(GL_VERTEX_ARRAY);
+
+    glUniformMatrix4fv(glGetUniformLocation(shader, "u_modelview"),
+                       1, GL_FALSE, camera_screen_mv_matrix);
+    glUniformMatrix4fv(glGetUniformLocation(shader, "u_projection"),
+                       1, GL_FALSE, camera_projection_matrix);
+
+    glUniform4f(glGetUniformLocation(shader, "u_color"),
+                (color>>24&0xff)/255.,
+                (color>>16&0xff)/255.,
+                (color>>8&0xff)/255.,
+                (color&0xff)/255.);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, font->texture.id);
+    glUniform1i(glGetUniformLocation(shader, "u_font"), 0);
+    glUniform2f(glGetUniformLocation(shader, "u_font_dims"),
+                font->texture.width, font->texture.height);
 }
 
 
@@ -154,7 +188,7 @@ static void setup_shader(struct font *font, uint32_t color)
 /* #  - load alpha-only and full-color fonts */
 
 // XXX what are the units of position?
-void text_render_line(struct font *font, position p, uint32_t color, const uint8_t *s)
+void text_render_line(struct font *font, position p, uint32_t color, const char *s)
 {
     ENSURE(s && font);
 
@@ -168,7 +202,7 @@ void text_render_line(struct font *font, position p, uint32_t color, const uint8
     }
 }
 
-void text_render_line_with_shadow(struct font *font, position p, uint32_t color, const uint8_t *s)
+void text_render_line_with_shadow(struct font *font, position p, uint32_t color, const char *s)
 {
 #define TEXT_SHADOW_OFFSET (5.f + 5.f*I)
     enum { TEXT_SHADOW_COLOR = 0xff };
