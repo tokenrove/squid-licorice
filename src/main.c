@@ -22,7 +22,8 @@ int main(/* int argc, char **argv */)
         video_start_frame();
         tilemap_draw(&t, camera_world_mv_matrix);
         text_render_line(&font, 50.f + 50.f*I, 0xff0000ff, "This is a test!");
-        text_render_line_with_shadow(&font, 50.f + 80.f*I, 0xff0000ff, "Hello, world.");
+        text_render_line_with_shadow(&font, 50.f + 80.f*I, 0x00ff00ff, "Hello, world.");
+        text_render_line_with_shadow(&font, 50.f + 120.f*I, 0xffffff80, "Hello — Montréal ©");
         video_end_frame();
 
         SDL_Event e;

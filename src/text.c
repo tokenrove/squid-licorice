@@ -82,6 +82,9 @@ bool text_load_font(struct font *font, const char *path)
         }
         // Also y_advance at the end of the line, but we ignore it.
         glyph = &font->glyphs[font->n_glyphs-1];
+        // XXX note that these font files by default leave the
+        // character code UTF-8 encoded, stupidly, but I've mangled
+        // them ahead of time.
         if (8 != sscanf(buf, "%u %hu %hu %hhu %hhu %hhd %hhd %hhd",
                         &glyph->char_code,
                         &glyph->x, &glyph->y, &glyph->w, &glyph->h,
@@ -113,18 +116,36 @@ void text_destroy_font(struct font *font)
     memset(font, 0, sizeof (*font));
 }
 
-static struct glyph *lookup_glyph(struct font *font, const char **s)
+/* Very primitive UTF-8 decoding. */
+static uint32_t decode_utf8(const char **s)
 {
     uint8_t c = **s;
-    if (c < 32) return NULL;
-    int n = 0;
-    if (c < 128) {
-        n = font->printable_ascii_lookup[c - 32];
+    if (c < 128) return c;
+    c <<= 1;
+    ENSURE(c&0x80);
+    int n;
+    for (n = 0; c&0x80; ++n) c <<= 1;
+    uint32_t u = c>>(1+n);
+    while (n--) {
+        c = *(++*s);
+        ENSURE(0x80 == (c&0xc0));
+        u = (u<<6) | (c&0x3f);
+    }
+    return u;
+}
+
+static struct glyph *lookup_glyph(struct font *font, const char **s)
+{
+    uint32_t u = decode_utf8(s);
+    if (u < 32) return NULL;
+    if (u < 128) {
+        int n = font->printable_ascii_lookup[u - 32];
         if (n < 0) return NULL;
         return &font->glyphs[n];
     }
-
-    // XXX decode UTF-8
+    for (int i = 0; i < font->n_glyphs; ++i)
+        if (font->glyphs[i].char_code == u)
+            return &font->glyphs[i];
     // XXX binary search
     return NULL;
 }
@@ -196,7 +217,7 @@ void text_render_line(struct font *font, position p, uint32_t color, const char 
 
     for (; *s; ++s) {
         struct glyph *g = lookup_glyph(font, &s);
-        if (!p) continue;       /* no glyph; just proceed.  In the future we could render a box. */
+        if (!g) continue;       /* no glyph; just proceed.  In the future we could render a box. */
         render_glyph(g, p + (g->x_offset + g->y_offset * I));
         p += g->x_advance;
     }
