@@ -51,5 +51,3 @@ bool strand_is_alive(strand st)
     return ((struct strand *)st)->is_alive;
 }
 
-#endif
-
