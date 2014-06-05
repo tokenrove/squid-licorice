@@ -6,6 +6,7 @@
 #include "tilemap.h"
 #include "text.h"
 #include "camera.h"
+#include "strand.h"
 
 enum outcome { NO_OUTCOME = 0, OUTCOME_QUIT };
 
@@ -35,28 +36,17 @@ static float update_frame_timer(void)
     return elapsed_time;
 }
 
-int main(/* int argc, char **argv */)
+static void inner_game_loop(strand self, struct tilemap *t, struct font *font)
 {
-    video_init();
-
-    tilemap_init();
-    struct tilemap t;
-    ENSURE(tilemap_load("map", "atlas.png", &t));
-
-    text_init();
-    struct font font;
-    ENSURE(text_load_font(&font, "myfont"));
-
     enum outcome outcome = NO_OUTCOME;
-    do {
-        float elapsed_time = update_frame_timer();
 
-        video_start_frame();
-        tilemap_draw(&t, camera_world_mv_matrix);
-        text_render_line(&font, 50.f + 50.f*I, 0xff0000ff, "This is a test!");
-        text_render_line_with_shadow(&font, 50.f + 80.f*I, 0x00ff00ff, "Hello, world.");
-        text_render_line_with_shadow(&font, 50.f + 120.f*I, 0xffffff80, "Hello — Montréal ©");
-        video_end_frame();
+    do {
+        tilemap_draw(t, camera_world_mv_matrix);
+        text_render_line(font, 50.f + 50.f*I, 0xff0000ff, "This is a test!");
+        text_render_line_with_shadow(font, 50.f + 80.f*I, 0x00ff00ff, "Hello, world.");
+        text_render_line_with_shadow(font, 50.f + 120.f*I, 0xffffff80, "Hello — Montréal ©");
+
+        float elapsed_time = strand_yield(self);
 
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -88,9 +78,42 @@ int main(/* int argc, char **argv */)
             default: /* ignore */ break;
             }
         }
-    } while(NO_OUTCOME == outcome);
+    } while (NO_OUTCOME == outcome);
+}
+
+static void game_entry_point(strand self)
+{
+    struct tilemap t;
+    ENSURE(tilemap_load("map", "atlas.png", &t));
+
+    struct font font;
+    ENSURE(text_load_font(&font, "myfont"));
+
+    inner_game_loop(self, &t, &font);
 
     text_destroy_font(&font);
     tilemap_destroy(&t);
+}
+
+
+int main(/* int argc, char **argv */)
+{
+    video_init();
+    tilemap_init();
+    text_init();
+
+    strand game_strand;
+    // XXX how much stack do we need?
+    game_strand = strand_spawn(game_entry_point, 16*4096*1024);
+
+    do {
+        float elapsed_time = update_frame_timer();
+
+        video_start_frame();
+        strand_resume(game_strand, elapsed_time);
+        video_end_frame();
+        // update events
+    } while(strand_is_alive(game_strand));
+
     return 0;
 }
