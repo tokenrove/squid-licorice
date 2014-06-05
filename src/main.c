@@ -81,6 +81,7 @@ static void game_entry_point(strand self)
 int main(/* int argc, char **argv */)
 {
     video_init();
+    input_init();
     tilemap_init();
     text_init();
 
