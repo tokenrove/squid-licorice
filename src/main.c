@@ -7,6 +7,7 @@
 #include "text.h"
 #include "camera.h"
 #include "strand.h"
+#include "input.h"
 
 enum outcome { NO_OUTCOME = 0, OUTCOME_QUIT };
 
@@ -39,6 +40,7 @@ static float update_frame_timer(void)
 static void inner_game_loop(strand self, struct tilemap *t, struct font *font)
 {
     enum outcome outcome = NO_OUTCOME;
+    float elapsed_time = 0.;
 
     do {
         tilemap_draw(t, camera_world_mv_matrix);
@@ -46,38 +48,18 @@ static void inner_game_loop(strand self, struct tilemap *t, struct font *font)
         text_render_line_with_shadow(font, 50.f + 80.f*I, 0x00ff00ff, "Hello, world.");
         text_render_line_with_shadow(font, 50.f + 120.f*I, 0xffffff80, "Hello — Montréal ©");
 
-        float elapsed_time = strand_yield(self);
+        elapsed_time = strand_yield(self);
 
-        SDL_Event e;
-        while (SDL_PollEvent(&e)) {
-            switch (e.type) {
-            case SDL_KEYDOWN:
-                if (e.key.state != SDL_PRESSED) break;
-                switch (e.key.keysym.sym) {
-                case SDLK_ESCAPE:
-                    SDL_PushEvent((SDL_Event*)&(SDL_QuitEvent){.type=SDL_QUIT});
-                    break;
-                case SDLK_DOWN:
-                    camera_world_mv_matrix[13] += 2.f;
-                    break;
-                case SDLK_UP:
-                    camera_world_mv_matrix[13] -= 2.f;
-                    break;
-                case SDLK_LEFT:
-                    camera_world_mv_matrix[12] -= 2.f;
-                    break;
-                case SDLK_RIGHT:
-                    camera_world_mv_matrix[12] += 2.f;
-                    break;
-                default: break;
-                };
-                break;
-            case SDL_QUIT:
-                outcome = OUTCOME_QUIT;
-                break;
-            default: /* ignore */ break;
-            }
-        }
+        if (inputs[IN_UP])
+            camera_world_mv_matrix[13] -= 2.f;
+        if (inputs[IN_DOWN])
+            camera_world_mv_matrix[13] += 2.f;
+        if (inputs[IN_LEFT])
+            camera_world_mv_matrix[12] -= 2.f;
+        if (inputs[IN_RIGHT])
+            camera_world_mv_matrix[12] += 2.f;
+        if (inputs[IN_QUIT])
+            outcome = OUTCOME_QUIT;
     } while (NO_OUTCOME == outcome);
 }
 
@@ -112,7 +94,7 @@ int main(/* int argc, char **argv */)
         video_start_frame();
         strand_resume(game_strand, elapsed_time);
         video_end_frame();
-        // update events
+        input_update();
     } while(strand_is_alive(game_strand));
 
     return 0;
