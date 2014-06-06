@@ -7,15 +7,18 @@
 #include "input.h"
 #include "game.h"
 
+double average_frame_time;
+
 static inline float max(const float a, const float b) { return a < b ? b : a; }
 
 static float update_frame_timer(void)
 {
-    const float target_frame_time = 1./60.;
+    const float target_frame_time = 1./60., alpha = 1/10.;
     static uint32_t last_ticks = 0;
     uint32_t now = timer_ticks_ms();
     float elapsed_time = (now - last_ticks) / 1000.;
     last_ticks = now;
+    average_frame_time += alpha * (elapsed_time - average_frame_time);
     /* The first time through this routine, or if the machine is
      * performing egregiously poorly, elapsed_time will be very large,
      * so we'll pretend it was a normal frame. */
