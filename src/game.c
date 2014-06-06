@@ -1,4 +1,5 @@
 
+#include <math.h>
 #include "camera.h"
 #include "game.h"
 #include "input.h"
@@ -7,6 +8,7 @@
 #include "text.h"
 #include "tilemap.h"
 #include "ensure.h"
+#include "main.h"
 
 const int INITIAL_N_LIVES = 3;
 
@@ -22,17 +24,33 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct stage
 {
     enum outcome outcome = NO_OUTCOME;
     float elapsed_time = 0.;
+    double accumulated_time = 0., last_fps_update = -1.;
+    char fps_output[6] = {0};
+    complex float fps_output_pos;
 
     struct tilemap t;
     ENSURE(tilemap_load("map", "atlas.png", &t));
 
+    // determine font metrics for placement of ready, fps messages
+    fps_output_pos = (1024.f - 60.f)  + (768.f - 30.f)*I;
+
     do {
         tilemap_draw(&t, camera_world_mv_matrix);
-        text_render_line(&font, 50.f + 50.f*I, 0xff0000ff, "This is a test!");
-        text_render_line_with_shadow(&font, 50.f + 80.f*I, 0x00ff00ff, "Hello, world.");
-        text_render_line_with_shadow(&font, 50.f + 120.f*I, 0xffffff80, "Hello — Montréal ©");
+
+        // osd
+        if (accumulated_time < 5. && fmod(accumulated_time, 1.) <= .5) {
+            text_render_line(&font, 1024/2.f + 768/2.f*I, 0xff0000ff, "READY");
+            //text_render_line(&font, 1024/2.f + 768/2.f*I, 0xff0000ff, stage->name);
+        }
+        // fps meter
+        if (accumulated_time - last_fps_update >= 1.) {
+            snprintf(fps_output, sizeof (fps_output), "%.1f", 1./average_frame_time);
+            last_fps_update = accumulated_time;
+        }
+        text_render_line(&font, fps_output_pos, 0xff0000ff, fps_output);
 
         elapsed_time = strand_yield(self);
+        accumulated_time += (double)elapsed_time;
 
         strand_resume(stage->strand, elapsed_time);
 

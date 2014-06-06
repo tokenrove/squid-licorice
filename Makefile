@@ -3,7 +3,7 @@
 CLANG=clang
 PACKAGES=sdl2 gl glu glew
 CFLAGS=-Wall -Wextra -Wshadow -Winit-self -Wwrite-strings -Wswitch -Wswitch-default -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wdouble-promotion -Wformat-security -fstrict-aliasing -Wstrict-aliasing -fms-extensions -std=gnu11 -g -O3 -Ivendor -Iobj `pkg-config --cflags $(PACKAGES)`
-LDFLAGS=-fwhole-program `pkg-config --libs $(PACKAGES)` -lpnglite -lz
+LDFLAGS=-fwhole-program `pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
 VPATH=src
 ENGINE_SRC=timer.c texture.c shader.c tilemap.c text.c video.c strand.c input.c camera.c
 GAME_SRC=stage.c game.c main.c
