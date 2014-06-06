@@ -6,7 +6,7 @@ CFLAGS=-Wall -Wextra -Wshadow -Winit-self -Wwrite-strings -Wswitch -Wswitch-defa
 LDFLAGS=-fwhole-program `pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
 VPATH=src
 ENGINE_SRC=timer.c texture.c shader.c tilemap.c text.c video.c strand.c input.c camera.c
-GAME_SRC=stage.c game.c main.c
+GAME_SRC=stage.c level.c game.c main.c
 SRC=$(ENGINE_SRC) $(GAME_SRC)
 OBJECTS=$(addprefix obj/, $(SRC:.c=.o))
 DEPS=$(OBJECTS:%.o=%.d)

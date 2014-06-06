@@ -3,24 +3,25 @@
 #include "camera.h"
 #include "game.h"
 #include "input.h"
-#include "stage.h"
+#include "level.h"
 #include "strand.h"
 #include "text.h"
 #include "tilemap.h"
 #include "ensure.h"
+#include "stage.h"
 #include "main.h"
 
 const int INITIAL_N_LIVES = 3;
 
 struct game {
-    int lives, stage;
+    int lives, level;
 };
 
 enum outcome { NO_OUTCOME = 0, OUTCOME_QUIT, OUTCOME_OUT_OF_LIVES, OUTCOME_NEXT_LEVEL };
 
 static struct font font;
 
-static enum outcome inner_game_loop(strand self, struct game *game, struct stage *stage)
+static enum outcome inner_game_loop(strand self, struct game *game, struct level *level)
 {
     enum outcome outcome = NO_OUTCOME;
     float elapsed_time = 0.;
@@ -28,15 +29,11 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct stage
     char fps_output[6] = {0};
     complex float fps_output_pos;
 
-    struct tilemap t;
-    position tm_p = 0.;
-    ENSURE(tilemap_load("map", "atlas.png", &t));
-
     // determine font metrics for placement of ready, fps messages
     fps_output_pos = (1024.f - 60.f)  + (768.f - 30.f)*I;
 
     do {
-        tilemap_draw(&t, tm_p);
+        stage_draw();
 
         // osd
         if (accumulated_time < 5. && fmod(accumulated_time, 1.) <= .5) {
@@ -53,12 +50,9 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct stage
         elapsed_time = strand_yield(self);
         accumulated_time += (double)elapsed_time;
 
-        strand_resume(stage->strand, elapsed_time);
+        stage_update(elapsed_time);
 
-        tm_p += inputs[IN_UP]*-1.f*I +
-                inputs[IN_DOWN]*1.f*I +
-                inputs[IN_LEFT]*-1.f +
-                inputs[IN_RIGHT]*1.f;
+        strand_resume(level->strand, elapsed_time);
 
         if (inputs[IN_MENU]) world_camera.scaling += 0.01;
         if (inputs[IN_QUIT])
@@ -68,23 +62,21 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct stage
         if (inputs[IN_SHOOT] == JUST_PRESSED)
             SDL_Log("Just hit shoot");
 
-        if (!strand_is_alive(stage->strand))
+        if (!strand_is_alive(level->strand))
             outcome = OUTCOME_NEXT_LEVEL;
     } while (NO_OUTCOME == outcome);
-
-    tilemap_destroy(&t);
     return outcome;
 }
 
 static void outer_game_loop(strand self, struct game *game)
 {
     while(true) {
-        struct stage *stage = stage_load(game->stage);
-        ENSURE(stage);
+        struct level *level = level_load(game->level);
+        ENSURE(level);
 
-        enum outcome outcome = inner_game_loop(self, game, stage);
+        enum outcome outcome = inner_game_loop(self, game, level);
 
-        stage_destroy(stage);
+        level_destroy(level);
 
         switch(outcome) {
         case OUTCOME_QUIT: return;
@@ -93,8 +85,8 @@ static void outer_game_loop(strand self, struct game *game)
             // game_over_screen();
             return;
         case OUTCOME_NEXT_LEVEL:
-            ++game->stage;
-            if (game->stage >= N_STAGES) {
+            ++game->level;
+            if (game->level >= N_LEVELS) {
                 // ending_screen();
                 return;
             }
@@ -108,7 +100,7 @@ static void outer_game_loop(strand self, struct game *game)
 
 static void new_game(strand self)
 {
-    struct game game = {.lives = INITIAL_N_LIVES, .stage = 0};
+    struct game game = {.lives = INITIAL_N_LIVES, .level = 0};
     outer_game_loop(self, &game);
 }
 
