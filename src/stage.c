@@ -24,7 +24,7 @@ static struct {
     void (*fn)(strand);
     size_t fn_stack_size;
 } stages[N_STAGES] = {
-    { .fn = stage1_entry, .fn_stack_size = 16*4096*1024 }
+    { .fn = stage1_entry, .fn_stack_size = STRAND_DEFAULT_STACK_SIZE }
 };
 
 struct stage *stage_load(int i)

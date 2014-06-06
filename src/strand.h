@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+enum { STRAND_DEFAULT_STACK_SIZE = 64*1024 };
+
 typedef void *strand;
 extern strand strand_spawn(void (*fn)(strand), size_t size_in_words);
 extern void strand_resume(strand strand, float dt);
