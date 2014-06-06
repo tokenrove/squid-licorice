@@ -50,6 +50,9 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct stage
             SDL_Log("Just hit menu");
         if (inputs[IN_SHOOT] == JUST_PRESSED)
             SDL_Log("Just hit shoot");
+
+        if (!strand_is_alive(stage->strand))
+            outcome = OUTCOME_NEXT_LEVEL;
     } while (NO_OUTCOME == outcome);
 
     tilemap_destroy(&t);
