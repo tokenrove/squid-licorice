@@ -153,13 +153,10 @@ static struct glyph *lookup_glyph(struct font *font, const char **s)
 static void render_glyph(struct glyph *g, position p)
 {
     // adjust camera
-    float mv[16];
-    memcpy(mv, camera_screen_mv_matrix, sizeof (mv));
-    mv[12] = crealf(p);
-    mv[13] = cimagf(p);
-
-    glUniformMatrix4fv(glGetUniformLocation(shader, "u_modelview"),
-                       1, GL_FALSE, mv);
+    p += osd_camera.translation;
+    glUniform2f(glGetUniformLocation(shader, "u_translation"),
+                crealf(p),
+                cimagf(p));
     glUniform2f(glGetUniformLocation(shader, "u_offset"), g->x, g->y);
     const GLfloat vertices[] = { 0., 0., g->w, 0., g->w, g->h, 0., g->h };
     glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
@@ -184,8 +181,13 @@ static void setup_shader(struct font *font, uint32_t color)
     glEnableVertexAttribArray(vertices_atloc);
     glEnableClientState(GL_VERTEX_ARRAY);
 
-    glUniformMatrix4fv(glGetUniformLocation(shader, "u_modelview"),
-                       1, GL_FALSE, camera_screen_mv_matrix);
+    glUniform2f(glGetUniformLocation(shader, "u_translation"),
+                crealf(osd_camera.translation),
+                cimagf(osd_camera.translation));
+    glUniform1f(glGetUniformLocation(shader, "u_scaling"),
+                osd_camera.scaling);
+    glUniform1f(glGetUniformLocation(shader, "u_rotation"),
+                osd_camera.rotation);
     glUniformMatrix4fv(glGetUniformLocation(shader, "u_projection"),
                        1, GL_FALSE, camera_projection_matrix);
 

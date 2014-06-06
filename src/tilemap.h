@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 
+#include "geometry.h"
 #include "texture.h"
 
 struct tilemap {
@@ -12,5 +13,5 @@ struct tilemap {
 
 extern void tilemap_init(void);
 extern bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *t);
-extern void tilemap_draw(struct tilemap *t, float *mv_matrix);
+extern void tilemap_draw(struct tilemap *t, position offset);
 extern void tilemap_destroy(struct tilemap *t);

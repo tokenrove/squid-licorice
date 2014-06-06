@@ -79,7 +79,7 @@ bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *
     return true;
 }
 
-void tilemap_draw(struct tilemap *t, float *mv_matrix)
+void tilemap_draw(struct tilemap *t, position offset)
 {
     ENSURE(shader);
     glUseProgram(shader);
@@ -94,8 +94,14 @@ void tilemap_draw(struct tilemap *t, float *mv_matrix)
     glVertexAttribPointer(vertices_atloc, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(vertices_atloc);
 
-    glUniformMatrix4fv(glGetUniformLocation(shader, "u_modelview"),
-                       1, GL_FALSE, mv_matrix);
+    offset += world_camera.translation;
+    glUniform2f(glGetUniformLocation(shader, "u_translation"),
+                crealf(offset),
+                cimagf(offset));
+    glUniform1f(glGetUniformLocation(shader, "u_scaling"),
+                world_camera.scaling);
+    glUniform1f(glGetUniformLocation(shader, "u_rotation"),
+                world_camera.rotation);
     glUniformMatrix4fv(glGetUniformLocation(shader, "u_projection"),
                        1, GL_FALSE, camera_projection_matrix);
 

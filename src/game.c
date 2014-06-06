@@ -29,13 +29,14 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct stage
     complex float fps_output_pos;
 
     struct tilemap t;
+    position tm_p = 0.;
     ENSURE(tilemap_load("map", "atlas.png", &t));
 
     // determine font metrics for placement of ready, fps messages
     fps_output_pos = (1024.f - 60.f)  + (768.f - 30.f)*I;
 
     do {
-        tilemap_draw(&t, camera_world_mv_matrix);
+        tilemap_draw(&t, tm_p);
 
         // osd
         if (accumulated_time < 5. && fmod(accumulated_time, 1.) <= .5) {
@@ -54,14 +55,12 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct stage
 
         strand_resume(stage->strand, elapsed_time);
 
-        if (inputs[IN_UP])
-            camera_world_mv_matrix[13] -= 2.f;
-        if (inputs[IN_DOWN])
-            camera_world_mv_matrix[13] += 2.f;
-        if (inputs[IN_LEFT])
-            camera_world_mv_matrix[12] -= 2.f;
-        if (inputs[IN_RIGHT])
-            camera_world_mv_matrix[12] += 2.f;
+        tm_p += inputs[IN_UP]*-1.f*I +
+                inputs[IN_DOWN]*1.f*I +
+                inputs[IN_LEFT]*-1.f +
+                inputs[IN_RIGHT]*1.f;
+
+        if (inputs[IN_MENU]) world_camera.scaling += 0.01;
         if (inputs[IN_QUIT])
             outcome = OUTCOME_QUIT;
         if (inputs[IN_MENU] == JUST_PRESSED)
@@ -122,6 +121,7 @@ static void main_menu_loop(strand self)
 
 void game_entry_point(strand self)
 {
+    camera_init();
     tilemap_init();
     text_init();
     main_menu_loop(self);

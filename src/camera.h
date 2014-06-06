@@ -1,8 +1,14 @@
 #pragma once
 
-extern void camera_set_ortho_projection(float width, float height);
+#include "geometry.h"
+
+struct camera {
+    position translation;
+    float scaling, rotation;
+};
+
+extern void camera_init(void);
 
 // column-oriented
+extern struct camera osd_camera, world_camera;
 extern float camera_projection_matrix[16];
-extern float camera_screen_mv_matrix[16];
-extern float camera_world_mv_matrix[16];
