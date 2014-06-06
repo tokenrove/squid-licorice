@@ -66,7 +66,7 @@ GLuint build_shader_program(const char *name, const GLchar *vertex_shader_src, c
      glGetProgramiv(program, GL_LINK_STATUS, &linked);
      if(GL_TRUE != linked) {
          log_shader_errors(name, program);
-          goto on_error;
+         goto on_error;
      }
      return program;
 on_error:
