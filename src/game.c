@@ -37,15 +37,17 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct level
 
         // osd
         if (accumulated_time < 5. && fmod(accumulated_time, 1.) <= .5) {
-            text_render_line(&font, 1024/2.f + 768/2.f*I, 0xff0000ff, "READY");
-            //text_render_line(&font, 1024/2.f + 768/2.f*I, 0xff0000ff, stage->name);
+            // XXX use an interpolation curve here
+            float alpha = (5. - accumulated_time)/5.;
+            text_render_line(&font, 1024/2.f + 768/2.f*I, 0xff000000 | (int)(0xff*alpha), "READY");
+            //text_render_line(&font, 1024/2.f + 768/2.f*I, 0xff0000ff, level->name);
         }
         // fps meter
         if (accumulated_time - last_fps_update >= 1.) {
             snprintf(fps_output, sizeof (fps_output), "%.1f", 1./average_frame_time);
             last_fps_update = accumulated_time;
         }
-        text_render_line(&font, fps_output_pos, 0xff0000ff, fps_output);
+        text_render_line(&font, fps_output_pos, 0xff000080, fps_output);
 
         elapsed_time = strand_yield(self);
         accumulated_time += (double)elapsed_time;
