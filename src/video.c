@@ -36,7 +36,7 @@ void video_init(void)
     ENSURE(sdl_window = SDL_CreateWindow("Squid Licorice",
                                          SDL_WINDOWPOS_UNDEFINED,
                                          SDL_WINDOWPOS_UNDEFINED,
-                                         1280, 720,
+                                         640, 480,
                                          SDL_WINDOW_OPENGL));
     ENSURE(gl_context = SDL_GL_CreateContext(sdl_window));
     SDL_GL_SetSwapInterval(1);  // return value ignored
