@@ -7,8 +7,10 @@
 
 struct tilemap {
     GLuint a_vertices;
-    float dims[4];
-    struct texture atlas_texture, map_texture;
+    struct {
+        float w, h;
+        struct texture texture;
+    } atlas, map;
 };
 
 extern void tilemap_init(void);

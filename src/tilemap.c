@@ -12,7 +12,7 @@
 
 /* Shaders for classic tilemap rendering.
  *
- * We pass in the map and atlas dimensions in u_map_atlas_dims, and we
+ * We pass in the map and atlas dimensions in u_{map,atlas}_dims, and we
  * assume that the tiles are square and the atlas width is equal to
  * the width and height of a tile.
  *
@@ -53,7 +53,7 @@ static void load_map(struct tilemap *t, const char *path)
     ENSURE(data = malloc(n));
     ENSURE(fread(data, 1, n, fp) == n);
     fclose(fp);
-    ENSURE(texture_from_pels(&t->map_texture, data, width, height, 1));
+    ENSURE(texture_from_pels(&t->map.texture, data, width, height, 1));
     free(data);
 }
 
@@ -62,16 +62,16 @@ bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *
     *t = (struct tilemap){0};
 
     load_map(t, map_path);
-    ENSURE(texture_from_png(&t->atlas_texture, atlas_path));
+    ENSURE(texture_from_png(&t->atlas.texture, atlas_path));
 
-    uint16_t tile_width = t->atlas_texture.width;
+    uint16_t tile_width = t->atlas.texture.width;
     uint16_t tile_height = tile_width; // XXX we assume it's the same, here
-    t->dims[0] = (float)t->map_texture.width*tile_width;
-    t->dims[1] = (float)t->map_texture.height*tile_height;
-    t->dims[2] = (float)t->atlas_texture.width;
-    t->dims[3] = (float)t->atlas_texture.height;
+    t->map.w = (float)t->map.texture.width*tile_width;
+    t->map.h = (float)t->map.texture.height*tile_height;
+    t->atlas.w = (float)t->atlas.texture.width;
+    t->atlas.h = (float)t->atlas.texture.height;
 
-    const GLfloat vertices[] = { 0., 0., t->dims[0], 0., t->dims[0], t->dims[1], 0., t->dims[1] };
+    const GLfloat vertices[] = { 0., 0., t->map.w, 0., t->map.w, t->map.h, 0., t->map.h };
     glGenBuffers(1, &t->a_vertices);
     glBindBuffer(GL_ARRAY_BUFFER, t->a_vertices);
     glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
@@ -85,9 +85,9 @@ void tilemap_draw(struct tilemap *t, position offset)
     glUseProgram(shader);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, t->atlas_texture.id);
+    glBindTexture(GL_TEXTURE_2D, t->atlas.texture.id);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, t->map_texture.id);
+    glBindTexture(GL_TEXTURE_2D, t->map.texture.id);
 
     glBindBuffer(GL_ARRAY_BUFFER, t->a_vertices);
     GLint vertices_atloc = glGetAttribLocation(shader, "a_vertex");
@@ -106,7 +106,8 @@ void tilemap_draw(struct tilemap *t, position offset)
 
     glUniform1i(glGetUniformLocation(shader, "u_atlas"), 0);
     glUniform1i(glGetUniformLocation(shader, "u_map"), 1);
-    glUniform4fv(glGetUniformLocation(shader, "u_map_atlas_dims"), 1, t->dims);
+    glUniform2f(glGetUniformLocation(shader, "u_map_dims"), t->map.w, t->map.h);
+    glUniform2f(glGetUniformLocation(shader, "u_atlas_dims"), t->atlas.w, t->atlas.h);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     uint8_t indices[] = { 0,1,2, 2,3,0 };
@@ -115,8 +116,8 @@ void tilemap_draw(struct tilemap *t, position offset)
 
 void tilemap_destroy(struct tilemap *t)
 {
-    texture_destroy(&t->map_texture);
-    texture_destroy(&t->atlas_texture);
+    texture_destroy(&t->map.texture);
+    texture_destroy(&t->atlas.texture);
     glDeleteBuffers(1, &t->a_vertices);
     *t = (struct tilemap){0};
 }

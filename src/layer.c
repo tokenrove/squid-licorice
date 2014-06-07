@@ -57,9 +57,9 @@ static void draw_bottom_up(struct layer *t, float top, float bottom)
         if (i == t->last)
             request_another_chunk(t);
         ENSURE(t->ring[i]);
-        if (p-t->ring[i]->dims[1] < bottom) break;    /* p is now visible */
-        p -= t->ring[i]->dims[1];  /* move p up one chunk */
-        t->position -= t->ring[i]->dims[1];
+        if (p-t->ring[i]->map.h < bottom) break;    /* p is now visible */
+        p -= t->ring[i]->map.h;  /* move p up one chunk */
+        t->position -= t->ring[i]->map.h;
         i = succ(i);               /* next chunk */
     } while(true);
     t->first = i;  /* this is the new first chunk */
@@ -70,7 +70,7 @@ static void draw_bottom_up(struct layer *t, float top, float bottom)
             request_another_chunk(t);
         ENSURE(t->ring[i]);
         if (p <= top) break;
-        p -= t->ring[i]->dims[1];
+        p -= t->ring[i]->map.h;
         tilemap_draw(t->ring[i], I*p);
         i = succ(i);
     } while(true);
@@ -110,7 +110,7 @@ void layer_draw(struct layer *t)
  *     float camera_top = world_camera.translation,
  *        camera_bottom = viewport_h + camera_top;
  * 
- *     for (i = 0; chunks[i].t && chunks[i].p + chunks[i].t->dims[1] < camera_top);
+ *     for (i = 0; chunks[i].t && chunks[i].p + chunks[i].t->map.h < camera_top);
  * 
  *     // XXX memcpy
  *     for (j = 0; chunks[i].t; ++j, ++i) chunks[j] = chunks[i];
@@ -118,7 +118,7 @@ void layer_draw(struct layer *t)
  *     for (; 0 == j || chunks[j-1].bottom < camera_top; ++j) {
  *         ENSURE(j < n_chunks);
  *         chunks[j] = chunks[0];
- *         chunks[j].bottom = chunks[j-1].bottom + chunks[j-1].t->dims[1];
+ *         chunks[j].bottom = chunks[j-1].bottom + chunks[j-1].t->map.h;
  *         chunks[j].top = chunks[j].bottom + chunks[j].height;
  *         if (j == 0) signal_next_chunk(); /\* XXX wait, is that right? *\/
  *     }
