@@ -10,6 +10,7 @@
 #include "ensure.h"
 #include "stage.h"
 #include "main.h"
+#include "video.h"
 
 const int INITIAL_N_LIVES = 3;
 
@@ -30,7 +31,7 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct level
     complex float fps_output_pos;
 
     // determine font metrics for placement of ready, fps messages
-    fps_output_pos = (1024.f - 60.f)  + (768.f - 30.f)*I;
+    fps_output_pos = (viewport_w - 60.f)  + (viewport_h - 30.f)*I;
 
     do {
         stage_draw();
@@ -39,7 +40,7 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct level
         if (accumulated_time < 5. && fmod(accumulated_time, 1.) <= .5) {
             // XXX use an interpolation curve here
             float alpha = (5. - accumulated_time)/5.;
-            text_render_line(&font, 1024/2.f + 768/2.f*I, 0xff000000 | (int)(0xff*alpha), "READY");
+            text_render_line(&font, viewport_w/2.f + viewport_h/2.f*I, 0xff000000 | (int)(0xff*alpha), "READY");
             //text_render_line(&font, 1024/2.f + 768/2.f*I, 0xff0000ff, level->name);
         }
         // fps meter
@@ -56,13 +57,9 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct level
 
         strand_resume(level->strand, elapsed_time);
 
-        if (inputs[IN_MENU]) world_camera.scaling += 0.01;
+        if (inputs[IN_MENU]) world_camera.scaling += 0.01f;
         if (inputs[IN_QUIT])
             outcome = OUTCOME_QUIT;
-        if (inputs[IN_MENU] == JUST_PRESSED)
-            SDL_Log("Just hit menu");
-        if (inputs[IN_SHOOT] == JUST_PRESSED)
-            SDL_Log("Just hit shoot");
 
         if (!strand_is_alive(level->strand))
             outcome = OUTCOME_NEXT_LEVEL;
