@@ -94,7 +94,6 @@ void tilemap_draw(struct tilemap *t, position offset)
     glVertexAttribPointer(vertices_atloc, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(vertices_atloc);
 
-    offset += world_camera.translation;
     glUniform2f(glGetUniformLocation(shader, "u_translation"),
                 crealf(offset),
                 cimagf(offset));

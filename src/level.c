@@ -1,48 +1,81 @@
 
+#include "tilemap.h"
 #include <stdlib.h>
 
 #include "level.h"
 #include "ensure.h"
 #include "strand.h"
 #include "stage.h"
+#include "video.h"
 
 #include <SDL2/SDL.h>
 
 
-// wait for distance
-// wait for chunk list exceeded
-// wait for time elapsed
-// wait for enemies cleared
+static void wait_for_n_screens(strand self, struct layer *layer, float n_screens)
+{
+    double distance = 0.;
+    float elapsed_time;
+    while (distance < (viewport_h * n_screens)) {
+        elapsed_time = strand_yield(self);
+        distance += layer->speed * elapsed_time;
+    }
+}
 
-/* 
- * static void wait_distance(strand self, float screens)
- * {
- *     uint32_t start = scroll_distance_travelled;
- *     while (scroll_distance_travelled - start < (viewport_h * screens))
- *         strand_yield(self);
- * }
- */
+static void wait_for_elapsed_time(strand self, float goal)
+{
+    double accum = 0.;
+    while (accum < goal)
+        accum += strand_yield(self);
+}
+
+static void ease_to_scroll_speed(strand self, struct layer *layer, float final,
+                                 float duration, easing_fn easing)
+{
+    float initial = layer->speed;
+    float elapsed = 0.f;
+
+    while (elapsed < duration) {
+        elapsed += strand_yield(self);
+        float w = easing(elapsed, duration);
+        layer->speed = initial + (final - initial) * w;
+    }
+    layer->speed = final;
+}
+
+struct next_context {
+    int count;
+};
 
 static void level1_entry(strand self)
 {
-    // load chunks
+    struct tilemap slice1a, slice1b, slice1c;
+    struct next_context context = {0};
 
-    /* 
-     * scroll_distance_travelled = 0;
-     * //start_music(level1_music);
-     * //set fragment to loop loop(map_fragment_1);
-     * scroll_set_loop(named_chunk, true);
-     * spawn_player();
-     * scroll_set_speed(1/10.);
-     * osd_display_message(5.0, "Level 1: Find the Rum!");
-     * wait_distance(1.0);
-     * scroll_set_loop(named_chunk, false);
-     * 
-     * spawn_squadron(fish);
-     * spawn_actor(clam, x, y);
-     * wait_chunks_exhausted();
-     */
-    while (1) strand_yield(self);
+    struct tilemap *next(void *data) {
+        struct next_context *ctx = data;
+        switch (ctx->count++) {
+        case 0: return &slice1a;
+        case 1: return &slice1b;
+        default: return &slice1c;
+        };
+    };
+
+    // load chunks
+    ENSURE(tilemap_load("slice1a.map", "slice1a.png", &slice1a));
+    ENSURE(tilemap_load("slice1b.map", "slice1b.png", &slice1b));
+    ENSURE(tilemap_load("slice1c.map", "slice1c.png", &slice1c));
+
+    struct layer *main_layer = layer_new(SCROLL_UP, next, &context);
+    stage_add_layer(main_layer);
+    ease_to_scroll_speed(self, main_layer, 200.f, 3., easing_cubic);
+    wait_for_n_screens(self, main_layer, 3);
+    ease_to_scroll_speed(self, main_layer, 0.f, 6., easing_cubic);
+    wait_for_elapsed_time(self, 10.);
+
+    layer_destroy(main_layer);
+    tilemap_destroy(&slice1a);
+    tilemap_destroy(&slice1b);
+    tilemap_destroy(&slice1c);
 }
 
 
