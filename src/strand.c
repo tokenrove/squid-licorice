@@ -62,6 +62,11 @@ strand strand_spawn_1(void (*fn)(strand, void *), size_t size, void *arg)
 
 void strand_resume(strand strand_, float dt)
 {
+    /* We might consider disallowing dt less than some epsilon to
+     * avoid numerical instability, here, but keep in mind that we
+     * sometimes pass in 0 dt to give a strand an opportunity to
+     * initialize itself, for example.
+     */
     struct t *st = strand_;
     st->dt = dt;
     swapcontext(&st->parent, &st->context);

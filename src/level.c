@@ -48,34 +48,36 @@ struct next_context {
 
 static void level1_entry(strand self)
 {
-    struct tilemap slice1a, slice1b, slice1c;
+    struct tilemap slices[3];
     struct next_context context = {0};
 
     struct tilemap *next(void *data) {
         struct next_context *ctx = data;
         switch (ctx->count++) {
-        case 0: return &slice1a;
-        case 1: return &slice1b;
-        default: return &slice1c;
+        case 0: return &slices[0];
+        case 1: return &slices[1];
+        default: return &slices[2];
         };
     };
 
     // load chunks
-    ENSURE(tilemap_load("slice1a.map", "slice1a.png", &slice1a));
-    ENSURE(tilemap_load("slice1b.map", "slice1b.png", &slice1b));
-    ENSURE(tilemap_load("slice1c.map", "slice1c.png", &slice1c));
+    ENSURE(tilemap_load("slice1a.map", "slice1a.png", &slices[0]));
+    ENSURE(tilemap_load("slice1b.map", "slice1b.png", &slices[1]));
+    ENSURE(tilemap_load("slice1c.map", "slice1c.png", &slices[2]));
 
     struct layer *main_layer = layer_new(SCROLL_UP, next, &context);
     stage_add_layer(main_layer);
+    strand_yield(self);
+    /* we're finished setting up */
+
     ease_to_scroll_speed(self, main_layer, 200.f, 3., easing_cubic);
     wait_for_n_screens(self, main_layer, 3);
     ease_to_scroll_speed(self, main_layer, 0.f, 6., easing_cubic);
     wait_for_elapsed_time(self, 10.);
 
     layer_destroy(main_layer);
-    tilemap_destroy(&slice1a);
-    tilemap_destroy(&slice1b);
-    tilemap_destroy(&slice1c);
+    for (int i = 0; i < 3; ++i)
+        tilemap_destroy(&slices[i]);
 }
 
 
@@ -86,12 +88,12 @@ static struct {
     { .fn = level1_entry, .fn_stack_size = STRAND_DEFAULT_STACK_SIZE }
 };
 
-struct level *level_load(int i)
+struct level *level_load(unsigned i)
 {
     stage_start();
     struct level *level;
-    level = calloc(1, sizeof (*level));
-    ENSURE(level);
+    ENSURE(i < N_LEVELS);
+    ENSURE(level = calloc(1, sizeof (*level)));
     level->strand = strand_spawn_0(levels[i].fn, levels[i].fn_stack_size);
     return level;
 }

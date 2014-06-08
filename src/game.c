@@ -25,13 +25,16 @@ static struct font font;
 static enum outcome inner_game_loop(strand self, struct game *game, struct level *level)
 {
     enum outcome outcome = NO_OUTCOME;
-    float elapsed_time = 0.;
+    float elapsed_time = 0.f;
     double accumulated_time = 0., last_fps_update = -1.;
     char fps_output[6] = {0};
     complex float fps_output_pos;
 
     // determine font metrics for placement of ready, fps messages
     fps_output_pos = (viewport_w - 60.f)  + (viewport_h - 30.f)*I;
+
+    // Allow the level to do its own setup.
+    strand_resume(level->strand, 0.f);
 
     do {
         stage_draw();
