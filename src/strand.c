@@ -5,6 +5,12 @@
 #include "ensure.h"
 #include "strand.h"
 
+#ifndef NVALGRIND
+#include "valgrind.h"
+#else
+#define VALGRIND_STACK_REGISTER(...)
+#endif
+
 struct t {
     ucontext_t context;
     ucontext_t parent;
@@ -33,7 +39,9 @@ static strand spawn(size_t size_in_words)
     getcontext(&st->parent);
     getcontext(&st->context);
     st->context.uc_link = &st->parent;
-    posix_memalign(&st->context.uc_stack.ss_sp, 16, size * sizeof (void*));
+    size_t size = size_in_words * sizeof (void *);
+    posix_memalign(&st->context.uc_stack.ss_sp, 16, size);
+    (void)VALGRIND_STACK_REGISTER(st->context.uc_stack.ss_sp, st->context.uc_stack.ss_sp + size);
     st->context.uc_stack.ss_size = size;
     return st;
 }
@@ -76,4 +84,5 @@ void strand_destroy(strand strand_)
     struct t *st = strand_;
     free(st->context.uc_stack.ss_sp);
     memset(st, 0, sizeof (*st));
+    free(st);
 }
