@@ -44,7 +44,7 @@ int main(/* int argc, char **argv */)
     strand game_strand;
     // XXX how much stack do we need?  This stack needs to be quite
     // large because things like shaders get compiled on it.
-    game_strand = strand_spawn(game_entry_point, 256*1024);
+    game_strand = strand_spawn_0(game_entry_point, 256*1024);
 
     do {
         float elapsed_time = update_frame_timer();

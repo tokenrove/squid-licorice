@@ -12,14 +12,21 @@ struct t {
     bool is_alive;
 };
 
-static void strand_wrap(strand self, int (*fn)(strand))
+static void strand_wrap_0(strand self, int (*fn)(strand))
 {
     (*fn)(self);
     struct t *st = self;
     st->is_alive = false;
 }
 
-strand strand_spawn(void (*fn)(strand), size_t size)
+static void strand_wrap_1(strand self, int (*fn)(strand, void *), void *arg)
+{
+    (*fn)(self, arg);
+    struct t *st = self;
+    st->is_alive = false;
+}
+
+static strand spawn(size_t size_in_words)
 {
     struct t *st = calloc(1, sizeof (*st));
     st->is_alive = true;
@@ -28,7 +35,20 @@ strand strand_spawn(void (*fn)(strand), size_t size)
     st->context.uc_link = &st->parent;
     posix_memalign(&st->context.uc_stack.ss_sp, 16, size * sizeof (void*));
     st->context.uc_stack.ss_size = size;
-    makecontext(&st->context, (void(*)(void))strand_wrap, 2, st, fn);
+    return st;
+}
+
+strand strand_spawn_0(void (*fn)(strand), size_t size)
+{
+    struct t *st = spawn(size);
+    makecontext(&st->context, (void(*)(void))strand_wrap_0, 2, st, fn);
+    return st;
+}
+
+strand strand_spawn_1(void (*fn)(strand, void *), size_t size, void *arg)
+{
+    struct t *st = spawn(size);
+    makecontext(&st->context, (void(*)(void))strand_wrap_1, 3, st, fn, arg);
     return st;
 }
 

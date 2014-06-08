@@ -92,7 +92,7 @@ struct level *level_load(int i)
     struct level *level;
     level = calloc(1, sizeof (*level));
     ENSURE(level);
-    level->strand = strand_spawn(levels[i].fn, levels[i].fn_stack_size);
+    level->strand = strand_spawn_0(levels[i].fn, levels[i].fn_stack_size);
     return level;
 }
 
