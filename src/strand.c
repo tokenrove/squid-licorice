@@ -50,6 +50,7 @@ strand strand_spawn_0(void (*fn)(strand), size_t size)
 {
     struct t *st = spawn(size);
     makecontext(&st->context, (void(*)(void))strand_wrap_0, 2, st, fn);
+    swapcontext(&st->parent, &st->context);  /* schedule strand once */
     return st;
 }
 
@@ -57,16 +58,15 @@ strand strand_spawn_1(void (*fn)(strand, void *), size_t size, void *arg)
 {
     struct t *st = spawn(size);
     makecontext(&st->context, (void(*)(void))strand_wrap_1, 3, st, fn, arg);
+    swapcontext(&st->parent, &st->context);  /* schedule strand once */
     return st;
 }
 
 void strand_resume(strand strand_, float dt)
 {
-    /* We might consider disallowing dt less than some epsilon to
-     * avoid numerical instability, here, but keep in mind that we
-     * sometimes pass in 0 dt to give a strand an opportunity to
-     * initialize itself, for example.
-     */
+    /* We disallow dt less than some epsilon to avoid numerical
+     * instability, at least in a debug build. */
+    ENSURE(dt > 0.001f);
     struct t *st = strand_;
     st->dt = dt;
     swapcontext(&st->parent, &st->context);

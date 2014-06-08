@@ -33,9 +33,6 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct level
     // determine font metrics for placement of ready, fps messages
     fps_output_pos = (viewport_w - 60.f)  + (viewport_h - 30.f)*I;
 
-    // Allow the level to do its own setup.
-    strand_resume(level->strand, 0.f);
-
     do {
         stage_draw();
 
