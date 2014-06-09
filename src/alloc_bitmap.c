@@ -6,6 +6,7 @@
 
 #include "alloc_bitmap.h"
 #include "ensure.h"
+#include "log.h"
 
 enum { SHIFT = 5, MASK = 0x1f };
 
@@ -15,12 +16,25 @@ struct t {
     void *members;
 };
 
-/* Bad things will probably happen if count isn't a power of two, and
- * if member_size isn't reasonably aligned for your structure of
- * choice.  Don't do that.
- */
+/* Per Hacker's Delight, 3-2 */
+static inline uint32_t clp2_32(uint32_t x)
+{
+    return 1 << (32 - __builtin_clz(x-1));
+}
+
 alloc_bitmap alloc_bitmap_init(size_t count, size_t member_size)
 {
+    size_t orig_count = count;
+    count = clp2_32(count);
+    if (orig_count != count)
+        LOG_DEBUG("count wasn't a power of 2 (%d), rounding to %d", orig_count, count);
+    if (count < 1+MASK) {
+        LOG_DEBUG("count was less than the minimum size (%d), rounding to %d", count, 1+MASK);
+        count = 1+MASK;
+    }
+    if (member_size & (sizeof (void*)-1))
+        LOG_DEBUG("member size probably isn't properly aligned: %d", member_size);
+
     struct t *t;
     ENSURE(t = calloc(1, sizeof (*t)));
     ENSURE(t->members = calloc(count, member_size));
