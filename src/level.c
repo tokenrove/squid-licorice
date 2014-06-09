@@ -7,6 +7,7 @@
 #include "strand.h"
 #include "stage.h"
 #include "video.h"
+#include "actor.h"
 
 #include <SDL2/SDL.h>
 
@@ -67,6 +68,12 @@ static void level1_entry(strand self)
 
     struct layer *main_layer = layer_new(SCROLL_UP, next, &context);
     stage_add_layer(main_layer);
+
+    // actors
+    // spawn player
+    struct actor *player = actor_spawn_at_position(ARCHETYPE_PLAYER1, viewport_w/2 + I*(viewport_h-50.f));
+    ENSURE(player);
+
     strand_yield(self);
     /* we're finished setting up */
 

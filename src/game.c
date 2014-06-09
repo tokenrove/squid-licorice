@@ -11,6 +11,9 @@
 #include "stage.h"
 #include "main.h"
 #include "video.h"
+#include "physics.h"
+#include "actor.h"
+#include "log.h"
 
 const int INITIAL_N_LIVES = 3;
 
@@ -22,8 +25,15 @@ enum outcome { NO_OUTCOME = 0, OUTCOME_QUIT, OUTCOME_OUT_OF_LIVES, OUTCOME_NEXT_
 
 static struct font font;
 
-static enum outcome inner_game_loop(strand self, struct game *game, struct level *level)
+enum { MAX_N_BODIES = 128, MAX_N_ACTORS = 64 };
+
+static enum outcome inner_game_loop(strand self, struct game *game)
 {
+    bodies_init(MAX_N_BODIES);
+    actors_init(MAX_N_ACTORS);
+    struct level *level = level_load(game->level);
+    ENSURE(level);
+
     enum outcome outcome = NO_OUTCOME;
     float elapsed_time = 0.f;
     double accumulated_time = 0., last_fps_update = -1.;
@@ -35,6 +45,7 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct level
 
     do {
         stage_draw();
+        actors_draw();
 
         // osd
         if (accumulated_time < 5. && fmod(accumulated_time, 1.) <= .5) {
@@ -54,8 +65,8 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct level
         accumulated_time += (double)elapsed_time;
 
         stage_update(elapsed_time);
-
         strand_resume(level->strand, elapsed_time);
+        actors_update(elapsed_time);
 
         if (inputs[IN_MENU]) world_camera.scaling += 0.01f;
         if (inputs[IN_QUIT])
@@ -64,18 +75,18 @@ static enum outcome inner_game_loop(strand self, struct game *game, struct level
         if (!strand_is_alive(level->strand))
             outcome = OUTCOME_NEXT_LEVEL;
     } while (NO_OUTCOME == outcome);
+
+    level_destroy(level);
+    actors_destroy();
+    bodies_destroy();
+
     return outcome;
 }
 
 static void outer_game_loop(strand self, struct game *game)
 {
     while(true) {
-        struct level *level = level_load(game->level);
-        ENSURE(level);
-
-        enum outcome outcome = inner_game_loop(self, game, level);
-
-        level_destroy(level);
+        enum outcome outcome = inner_game_loop(self, game);
 
         switch(outcome) {
         case OUTCOME_QUIT: return;
@@ -91,7 +102,7 @@ static void outer_game_loop(strand self, struct game *game)
             }
             break;
         default:
-            SDL_Log("Bad outcome: %d", outcome);
+            LOG_DEBUG("Bad outcome: %d", outcome);
             break;
         }
     }
@@ -115,5 +126,6 @@ void game_entry_point(strand self)
     camera_init();
     tilemap_init();
     text_init();
+    sprite_init();
     main_menu_loop(self);
 }
