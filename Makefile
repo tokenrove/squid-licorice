@@ -16,6 +16,7 @@ all: obj/squid
 
 src/tilemap.c: obj/tilemap.vert.i obj/tilemap.frag.i
 src/text.c: obj/text.vert.i obj/text.frag.i
+src/sprite.c: obj/sprite.vert.i obj/sprite.frag.i
 
 obj/squid: $(OBJECTS) | obj
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
