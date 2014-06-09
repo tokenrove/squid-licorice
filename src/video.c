@@ -6,6 +6,7 @@
 #include "ensure.h"
 #include "video.h"
 #include "camera.h"
+#include "log.h"
 
 static SDL_Window *sdl_window;
 static SDL_GLContext gl_context;
@@ -21,7 +22,7 @@ static void sdl_init(void)
 {
     SDL_Init(SDL_INIT_EVERYTHING);
     atexit(SDL_Quit);
-    SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+    log_init();
 }
 
 void video_init(void)

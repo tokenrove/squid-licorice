@@ -8,34 +8,6 @@
 #include "shader.h"
 
 
-static void log_shader_errors(const char *fn, GLuint object)
-{
-     struct {
-          void (*get)(GLuint, GLenum, GLint*);
-          void (*log)(GLuint, GLsizei, GLsizei*, GLchar*);
-     } fns[] = { { .get = glGetShaderiv, .log = glGetShaderInfoLog },
-                 { .get = glGetProgramiv, .log = glGetProgramInfoLog } };
-     bool is_program = glIsProgram(object);
-
-     GLsizei len;
-     (*fns[is_program].get)(object, GL_INFO_LOG_LENGTH, &len);
-     ENSURE(len > 0);
-     GLchar *log = malloc(len * sizeof (GLchar));
-     ENSURE(log);
-     (*fns[is_program].log)(object, len, NULL, log);
-     GLint type;
-     const char *name;
-     if(is_program)
-          name = "program";
-     else {
-          glGetShaderiv(object, GL_SHADER_TYPE, &type);
-          name = type == GL_VERTEX_SHADER ? "vertex" : "fragment";
-     }
-     fprintf(stderr, "%s: %s: %s", fn, name, log);
-     free(log);
-     return;
-}
-
 static int compile_shader(const char *name, const GLchar *src, GLenum type)
 {
     GLuint shader = glCreateShader(type);

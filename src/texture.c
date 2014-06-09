@@ -7,6 +7,7 @@
 
 #include "ensure.h"
 #include "texture.h"
+#include "log.h"
 
 void texture_init(void)
 {
@@ -65,7 +66,11 @@ bool texture_from_png(struct texture *t, const char *path)
     *t = (struct texture){0};
 
     png_t png;
-    ENSURE(PNG_NO_ERROR == png_open_file(&png, path));
+    int outcome = png_open_file(&png, path);
+    if (PNG_NO_ERROR != outcome) {
+        LOG_ERROR("png_open_file(%s): %d", path, outcome);
+        ABORT("failed to open PNG");
+    }
     uint8_t *pels;
     pels = malloc(png.width*png.height*png.bpp);
     ENSURE(pels);

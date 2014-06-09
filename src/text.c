@@ -19,13 +19,7 @@
 #include "ensure.h"
 #include "shader.h"
 #include "camera.h"
-
-#define LOG(message, ...) do {                 \
-        fprintf(stderr, "%s: ", __func__);     \
-        fprintf(stderr, message, __VA_ARGS__); \
-        fputc('\n', stderr);                   \
-    } while(0)
-
+#include "log.h"
 
 static const GLchar text_vertex_shader_src[] = {
 #include "text.vert.i"
@@ -59,7 +53,7 @@ bool text_load_font(struct font *font, const char *path)
     strncat(buf, ".fnt", BUFLEN);
     fp = fopen(buf, "rb");
     if (NULL == fp) {
-        LOG("file not found (%s)", buf);
+        LOG_ERROR("file not found (%s)", buf);
         return false;
     }
     bool r;
@@ -72,12 +66,12 @@ bool text_load_font(struct font *font, const char *path)
         // XXX next font format should declare the number of glyphs up front
         font->glyphs = realloc(font->glyphs, font->n_glyphs * sizeof (*font->glyphs));
         if (NULL == font->glyphs) {
-            LOG("Failed to allocate memory for glyphs (%s.fnt)", path);
+            LOG_ERROR("Failed to allocate memory for glyphs (%s.fnt)", path);
             break;
         }
 
         if ('\n' != buf[strlen(buf)-1]) {
-            LOG("Sorry, we expect every font file line to end in an LF (%s.fnt)", path);
+            LOG_DEBUG("Sorry, we expect every font file line to end in an LF (%s.fnt)", path);
             break;
         }
         // Also y_advance at the end of the line, but we ignore it.
@@ -89,7 +83,7 @@ bool text_load_font(struct font *font, const char *path)
                         &glyph->char_code,
                         &glyph->x, &glyph->y, &glyph->w, &glyph->h,
                         &glyph->x_offset, &glyph->y_offset, &glyph->x_advance)) {
-            LOG("Didn't get exactly eight values; misformatted font file (%s.fnt)?", path);
+            LOG_DEBUG("Didn't get exactly eight values; misformatted font file (%s.fnt)?", path);
             break;
         }
 

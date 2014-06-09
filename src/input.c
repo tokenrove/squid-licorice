@@ -5,6 +5,7 @@
 
 #include "ensure.h"
 #include "input.h"
+#include "log.h"
 
 /* Having this be global is lame, but sometimes that's how it is. */
 input_state inputs[IN_LAST];
@@ -35,25 +36,23 @@ static void setup_joysticks()
 {
     SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
 
-    if (0 == SDL_NumJoysticks())
-        SDL_LogInfo(SDL_LOG_CATEGORY_INPUT,
-                    "No joysticks detected (see https://hg.libsdl.org/SDL/file/e3e00f8e6b91/README-linux.txt if this is erroneous).");
+    if (0 == SDL_NumJoysticks()) {
+        LOG("No joysticks detected (see https://hg.libsdl.org/SDL/file/e3e00f8e6b91/README-linux.txt if this is erroneous).");
+    }
 
     SDL_JoystickEventState(SDL_ENABLE);
     for (int i = 0; i < SDL_NumJoysticks(); ++i) {
         if (SDL_IsGameController(i)) {
-            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
-                         "Found a game controller (%s) but decided to ignore it.",
-                         SDL_GameControllerNameForIndex(i));
             SDL_GameController *controller = SDL_GameControllerOpen(i);
             if (controller)
-                SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
-                             "Opened game controller: %s", SDL_GameControllerName(controller));
+                LOG_DEBUG("Opened game controller: %s", SDL_GameControllerName(controller));
+            else
+                LOG_DEBUG("Found a game controller (%s) but couldn't open it.",
+                    SDL_GameControllerNameForIndex(i));
         } else {
             SDL_Joystick *joy = SDL_JoystickOpen(i);
             if (joy)
-                SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
-                             "Opened joystick: %s", SDL_JoystickNameForIndex(0));
+                LOG_DEBUG("Opened joystick: %s", SDL_JoystickNameForIndex(0));
         }
     }
 }
