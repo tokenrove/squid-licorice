@@ -17,7 +17,7 @@ struct glyph {
  * The font structure keeps track of the glyphs in sorted order.
  */
 struct font {
-    uint16_t n_glyphs;
+    uint16_t n_glyphs, line_height;
     struct glyph *glyphs;
     struct texture texture;
     GLuint a_vertices;
@@ -35,3 +35,5 @@ extern void text_destroy_font(struct font *font);
  */
 extern void text_render_line(struct font *font, position p, uint32_t color, const char *s);
 extern void text_render_line_with_shadow(struct font *font, position p, uint32_t color, const char *s);
+extern uint16_t text_get_line_height(struct font *font);
+extern uint16_t text_width(struct font *font, const char *s);

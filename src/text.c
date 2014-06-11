@@ -59,6 +59,7 @@ bool text_load_font(struct font *font, const char *path)
     bool r;
     fgets(buf, BUFLEN, fp);  // skip first line
     while (!feof(fp)) {
+        uint8_t y_adv;
         struct glyph *glyph;
         if (NULL == fgets(buf, BUFLEN, fp)) break;
         r = false;
@@ -79,13 +80,16 @@ bool text_load_font(struct font *font, const char *path)
         // XXX note that these font files by default leave the
         // character code UTF-8 encoded, stupidly, but I've mangled
         // them ahead of time.
-        if (8 != sscanf(buf, "%u %hu %hu %hhu %hhu %hhd %hhd %hhd",
-                        &glyph->char_code,
-                        &glyph->x, &glyph->y, &glyph->w, &glyph->h,
-                        &glyph->x_offset, &glyph->y_offset, &glyph->x_advance)) {
-            LOG_DEBUG("Didn't get exactly eight values; misformatted font file (%s.fnt)?", path);
+        if (9 != sscanf(buf, "%u %hu %hu %hhu %hhu %hhd %hhd %hhd %hhd",
+                        &glyph->char_code, &glyph->x, &glyph->y,
+                        &glyph->w, &glyph->h, &glyph->x_offset, &glyph->y_offset,
+                        &glyph->x_advance, &y_adv)) {
+            LOG_DEBUG("Didn't get exactly nine values; misformatted font file (%s.fnt)?", path);
             break;
         }
+
+        if (y_adv > font->line_height)
+            font->line_height = y_adv;
 
         if (glyph->char_code >= 32 && glyph->char_code < 128)
             font->printable_ascii_lookup[glyph->char_code-32] = font->n_glyphs-1;
@@ -222,7 +226,23 @@ void text_render_line(struct font *font, position p, uint32_t color, const char 
 void text_render_line_with_shadow(struct font *font, position p, uint32_t color, const char *s)
 {
 #define TEXT_SHADOW_OFFSET (5.f + 5.f*I)
-    enum { TEXT_SHADOW_COLOR = 0xff };
+    enum { TEXT_SHADOW_COLOR = 0x80 };
     text_render_line(font, p+TEXT_SHADOW_OFFSET, TEXT_SHADOW_COLOR, s);
     text_render_line(font, p, color, s);
+}
+
+uint16_t text_get_line_height(struct font *font)
+{
+    return font->line_height;
+}
+
+uint16_t text_width(struct font *font, const char *s)
+{
+    uint16_t w = 0;
+    for (; *s; ++s) {
+        struct glyph *g = lookup_glyph(font, &s);
+        if (!g) continue;       /* no glyph; just proceed.  In the future we could render a box. */
+        w += g->x_advance;
+    }
+    return w;
 }
