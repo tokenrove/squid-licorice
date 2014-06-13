@@ -6,6 +6,7 @@
 
 #include "ensure.h"
 #include "shader.h"
+#include "log.h"
 
 
 static int compile_shader(const char *name, const GLchar *src, GLenum type)
