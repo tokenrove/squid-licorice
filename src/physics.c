@@ -29,3 +29,24 @@ void body_destroy(struct body *body)
 {
     alloc_bitmap_remove(bodies, body);
 }
+
+static void body_update(struct body *body, float dt)
+{
+    const float friction = 0.08f;
+    position accel = body->F / body->mass;
+    position delta = body->impulses / body->mass + accel*dt;
+    body->impulses = 0;
+    /* per http://www.niksula.hut.fi/~hkankaan/Homepages/gravity.html */
+    body->v += delta / 2;
+    body->p += body->v;
+    body->v += delta / 2;
+    body->v -= friction * body->v;  /* Stokes' drag */
+}
+
+void bodies_update(float dt)
+{
+    struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bodies);
+    struct body *b;
+    while((b = iter.next(&iter)))
+        body_update(b, dt);
+}

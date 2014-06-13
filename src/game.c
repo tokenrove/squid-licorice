@@ -44,6 +44,7 @@ static enum outcome inner_game_loop(strand self, struct game *game)
 
         elapsed_time = strand_yield(self);
         stage_update(elapsed_time);
+        bodies_update(elapsed_time);
         strand_resume(level->strand, elapsed_time);
         actors_update(elapsed_time);
         osd_update(elapsed_time);
