@@ -27,7 +27,7 @@ static const GLchar text_vertex_shader_src[] = {
 static const GLchar text_fragment_shader_src[] = {
 #include "text.frag.i"
     , 0 };
-static GLuint shader;
+static GLuint shader, a_vertices;
 
 void text_init(void)
 {
@@ -35,6 +35,7 @@ void text_init(void)
     if (0 == shader)
         shader = build_shader_program("text", text_vertex_shader_src, text_fragment_shader_src);
     ENSURE(shader);
+    glGenBuffers(1, &a_vertices);
 }
 
 /*
@@ -100,7 +101,7 @@ bool text_load_font(struct font *font, const char *path)
     if (false == r)
         return false;
 
-    glGenBuffers(1, &font->a_vertices);
+    glGenBuffers(1, &a_vertices);
 
     strncpy(buf, path, BUFLEN);
     strncat(buf, ".png", BUFLEN);
@@ -110,7 +111,7 @@ bool text_load_font(struct font *font, const char *path)
 void text_destroy_font(struct font *font)
 {
     free(font->glyphs);
-    glDeleteBuffers(1, &font->a_vertices);
+    glDeleteBuffers(1, &a_vertices);
     memset(font, 0, sizeof (*font));
 }
 
@@ -173,7 +174,7 @@ static void setup_shader(struct font *font, uint32_t color)
 
     glUseProgram(shader);
 
-    glBindBuffer(GL_ARRAY_BUFFER, font->a_vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, a_vertices);
     GLint vertices_atloc = glGetAttribLocation(shader, "a_vertex");
     glVertexAttribPointer(vertices_atloc, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(vertices_atloc);

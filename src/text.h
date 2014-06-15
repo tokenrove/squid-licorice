@@ -20,7 +20,6 @@ struct font {
     uint16_t n_glyphs, line_height;
     struct glyph *glyphs;
     struct texture texture;
-    GLuint a_vertices;
     int8_t printable_ascii_lookup[128-32]; /* Lookup table for characters from 32 to 127 */
 };
 

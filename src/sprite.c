@@ -20,8 +20,8 @@ void sprite_init(void)
     texture_init();
     if (0 == shader)
         shader = build_shader_program("sprite", sprite_vertex_shader_src, sprite_fragment_shader_src);
-    glGenBuffers(1, &a_vertices);
     ENSURE(shader);
+    glGenBuffers(1, &a_vertices);
 }
 
 void sprite_draw(struct sprite *s, position p)

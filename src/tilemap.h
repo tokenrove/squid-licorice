@@ -6,7 +6,6 @@
 #include "texture.h"
 
 struct tilemap {
-    GLuint a_vertices;
     struct {
         float w, h;
         struct texture texture;

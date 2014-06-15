@@ -26,7 +26,7 @@ static const GLchar tilemap_vertex_shader_src[] = {
 static const GLchar tilemap_fragment_shader_src[] = {
 #include "tilemap.frag.i"
     , 0 };
-static GLuint shader;
+static GLuint shader, a_vertices;
 
 void tilemap_init(void)
 {
@@ -34,6 +34,7 @@ void tilemap_init(void)
     if (0 == shader)
         shader = build_shader_program("tilemap", tilemap_vertex_shader_src, tilemap_fragment_shader_src);
     ENSURE(shader);
+    glGenBuffers(1, &a_vertices);
 }
 
 static void load_map(struct tilemap *t, const char *path)
@@ -59,7 +60,7 @@ static void load_map(struct tilemap *t, const char *path)
 
 bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *t)
 {
-    *t = (struct tilemap){0};
+    memset(t, 0, sizeof (*t));
 
     load_map(t, map_path);
     ENSURE(texture_from_png(&t->atlas.texture, atlas_path));
@@ -72,8 +73,7 @@ bool tilemap_load(const char *map_path, const char *atlas_path, struct tilemap *
     t->atlas.h = (float)t->atlas.texture.height;
 
     const GLfloat vertices[] = { 0., 0., t->map.w, 0., t->map.w, t->map.h, 0., t->map.h };
-    glGenBuffers(1, &t->a_vertices);
-    glBindBuffer(GL_ARRAY_BUFFER, t->a_vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, a_vertices);
     glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
 
     return true;
@@ -89,7 +89,7 @@ void tilemap_draw(struct tilemap *t, position offset)
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, t->map.texture.id);
 
-    glBindBuffer(GL_ARRAY_BUFFER, t->a_vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, a_vertices);
     GLint vertices_atloc = glGetAttribLocation(shader, "a_vertex");
     glVertexAttribPointer(vertices_atloc, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(vertices_atloc);
@@ -118,6 +118,5 @@ void tilemap_destroy(struct tilemap *t)
 {
     texture_destroy(&t->map.texture);
     texture_destroy(&t->atlas.texture);
-    glDeleteBuffers(1, &t->a_vertices);
-    *t = (struct tilemap){0};
+    memset(t, 0, sizeof (*t));
 }
