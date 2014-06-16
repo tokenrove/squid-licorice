@@ -51,7 +51,7 @@ void sprite_draw(struct sprite *s, position p)
     glBindTexture(GL_TEXTURE_2D, s->atlas->id);
     glUniform1i(glGetUniformLocation(shader, "u_atlas"), 0);
     glUniform4f(glGetUniformLocation(shader, "u_clip"),
-                s->x, s->y, s->w, s->h);
+                s->x, s->y, s->atlas->width, s->atlas->height);
 
     const GLfloat vertices[] = { 0., 0., s->w, 0., s->w, s->h, 0., s->h };
     glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
