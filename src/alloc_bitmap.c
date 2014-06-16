@@ -109,9 +109,9 @@ static void *it_next(struct alloc_bitmap_iterator *me)
         if (0 == x) continue;
         size_t bit = ffs(x);
         ENSURE(bit);
-        me->j += bit-1;
+        me->j += bit;
         ++me->n;
-        return address_of_member(t, me->i, me->j);
+        return address_of_member(t, me->i, me->j-1);
     }
     return NULL;
 }
