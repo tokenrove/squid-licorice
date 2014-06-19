@@ -14,7 +14,8 @@ typedef enum {
     SIGNAL_ENTER,
     SIGNAL_EXIT,
     SIGNAL_TICK,
-    SIGNAL_COLLISION
+    SIGNAL_COLLISION,
+    SIGNAL_OFFSIDE
 } signal;
 
 struct event {
@@ -43,6 +44,6 @@ extern void actors_destroy(void);
 extern void actors_draw(void);
 extern void actors_update(float elapsed_time);
 
-extern struct actor *actor_spawn_at_position(enum actor_archetype type, position p);
+extern struct actor *actor_spawn(enum actor_archetype type, position p, void *state);
 // Returns whether this actor is still alive (true).
 extern bool actor_signal(struct actor *actor, struct event *event);

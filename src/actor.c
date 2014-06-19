@@ -1,7 +1,9 @@
 
+#include "log.h"
 #include "actor.h"
 #include "ensure.h"
 #include "alloc_bitmap.h"
+#include "input.h"
 
 #define EV_SUPER(super_) (me->handler = super_, STATE_SUPER)
 
@@ -9,8 +11,50 @@ struct player {
     // weapons etc
 };
 
+static enum handler_return player_default(struct actor *me, struct event *e)
+{
+    switch (e->signal) {
+    case SIGNAL_TICK:
+        if (inputs[IN_UP])
+            me->body->impulses += -5.*inputs[IN_UP]*I;
+        if (inputs[IN_DOWN])
+            me->body->impulses += 5.*inputs[IN_DOWN]*I;
+        if (inputs[IN_LEFT])
+            me->body->impulses += -5.*inputs[IN_LEFT];
+        if (inputs[IN_RIGHT])
+            me->body->impulses += 5.*inputs[IN_RIGHT];
+        break;
+    default: break;
+    }
+    return STATE_IGNORED;
+}
+
 static enum handler_return player_initial(struct actor *me, struct event *e)
 {
+    me->sprite.x = 0;
+    me->sprite.y = 0;
+    me->sprite.w = 29;
+    me->sprite.h = 51;
+    return me->handler = player_default, STATE_TRANSITION;
+}
+
+struct enemy_a {
+    unsigned *group_ctr;
+};
+
+static enum handler_return enemy_a_initial(struct actor *me, struct event *e)
+{
+    me->sprite.x = 58;
+    me->sprite.y = 0;
+    me->sprite.w = 26;
+    me->sprite.h = 24;
+    switch (e->signal) {
+    case SIGNAL_TICK: break;
+    case SIGNAL_OFFSIDE:
+        LOG("%p went offside", me);
+        break;
+    default: break;
+    }
     return STATE_IGNORED;
 }
 
@@ -20,12 +64,18 @@ struct archetype {
     state_handler initial_handler;
     size_t state_size;
 } archetypes[] = {
-    { .atlas_path = "player.png",
+    { .atlas_path = "sprites.png",
       .collision_radius = 20,
       .mass = 30,
       .initial_handler = player_initial,
       .state_size = sizeof (struct player)
     },
+    { .atlas_path = "sprites.png",
+      .collision_radius = 20,
+      .mass = 30,
+      .initial_handler = enemy_a_initial,
+      .state_size = sizeof (struct enemy_a)
+    }
 };
 
 bool actor_signal(struct actor *actor, struct event *event)
@@ -92,13 +142,14 @@ void actors_update(float elapsed_time)
     iter.expunge_marked(&iter);
 }
 
-struct actor *actor_spawn_at_position(enum actor_archetype type, position p)
+struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
 {
     ENSURE(type < ARCHETYPE_LAST);
     struct archetype *arch = &archetypes[type];
     struct actor *a = (struct actor *)alloc_bitmap_alloc_first_free(actors);
     *a = (struct actor){
-        .handler = arch->initial_handler
+        .handler = arch->initial_handler,
+        .state = state
     };
     a->sprite = (struct sprite) { .x = 0, .y = 0, .scaling = 1.f, .rotation = 0. };
     // XXX will go in a dedicated atlas cache somewhere instead

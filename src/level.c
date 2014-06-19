@@ -71,15 +71,27 @@ static void level1_entry(strand self)
 
     // actors
     // spawn player
-    struct actor *player = actor_spawn_at_position(ARCHETYPE_PLAYER1, viewport_w/2 + I*(viewport_h-50.f));
+    struct actor *player = actor_spawn(ARCHETYPE_PLAYER1, viewport_w/2 + I*(viewport_h-50.f), NULL);
     ENSURE(player);
 
     strand_yield(self);
     /* we're finished setting up */
 
     ease_to_scroll_speed(self, main_layer, 200.f, 3., easing_cubic);
-    wait_for_n_screens(self, main_layer, 3);
-    ease_to_scroll_speed(self, main_layer, 0.f, 6., easing_cubic);
+    wait_for_n_screens(self, main_layer, 1);
+
+    // group 1
+    {
+        unsigned group_ctr = 0;
+        struct { unsigned *group_ctr; } enemy_aux = { .group_ctr = &group_ctr };
+        struct actor *enemies[2];
+        enemies[0] = actor_spawn(ARCHETYPE_WAVE_ENEMY, viewport_w/2. + I*50.f, &enemy_aux);
+        enemies[1] = actor_spawn(ARCHETYPE_WAVE_ENEMY, viewport_w/2. - 100.f + I*50.f, &enemy_aux);
+        ++group_ctr;
+        ease_to_scroll_speed(self, main_layer, 0.f, 6., easing_cubic);
+        while (group_ctr > 0) strand_yield(self);
+    }
+
     wait_for_elapsed_time(self, 10.);
 
     layer_destroy(main_layer);
