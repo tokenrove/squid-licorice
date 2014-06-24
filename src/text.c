@@ -38,6 +38,45 @@ void text_init(void)
     glGenBuffers(1, &a_vertices);
 }
 
+static bool read_glyph(struct font *font, const char *buf, const char *path)
+{
+    int8_t y_adv;
+    struct glyph *glyph;
+
+    ++font->n_glyphs;
+    // XXX next font format should declare the number of glyphs up front
+    font->glyphs = realloc(font->glyphs, font->n_glyphs * sizeof (*font->glyphs));
+    if (NULL == font->glyphs) {
+        LOG_ERROR("Failed to allocate memory for glyphs (%s.fnt)", path);
+        return false;
+    }
+
+    if ('\n' != buf[strlen(buf)-1]) {
+        LOG_DEBUG("Sorry, we expect every font file line to end in an LF (%s.fnt)", path);
+        return false;
+    }
+    // Also y_advance at the end of the line, but we ignore it.
+    glyph = &font->glyphs[font->n_glyphs-1];
+    // XXX note that these font files by default leave the
+    // character code UTF-8 encoded, stupidly, but I've mangled
+    // them ahead of time.
+    if (9 != sscanf(buf, "%u %hu %hu %hhu %hhu %hhd %hhd %hhd %hhd",
+                    &glyph->char_code, &glyph->x, &glyph->y,
+                    &glyph->w, &glyph->h, &glyph->x_offset, &glyph->y_offset,
+                    &glyph->x_advance, &y_adv)) {
+        LOG_DEBUG("Didn't get exactly nine values; misformatted font file (%s.fnt)?", path);
+        return false;
+    }
+
+    if (y_adv > font->line_height)
+        font->line_height = y_adv;
+
+    if (glyph->char_code >= 32 && glyph->char_code < 128)
+        font->printable_ascii_lookup[glyph->char_code-32] = font->n_glyphs-1;
+
+    return true;
+}
+
 /*
  * path: NUL-terminated string containing the path to the font file
  * without extension (foo passed in loads foo.fnt and foo.png)
@@ -59,49 +98,12 @@ bool text_load_font(struct font *font, const char *path)
     }
     bool r = false;
     fgets(buf, BUFLEN, fp);  // skip first line
-    while (!feof(fp)) {
+    do {
         if (NULL == fgets(buf, BUFLEN, fp)) break;
-        int8_t y_adv;
-        struct glyph *glyph;
-        r = false;
-        ++font->n_glyphs;
-        // XXX next font format should declare the number of glyphs up front
-        font->glyphs = realloc(font->glyphs, font->n_glyphs * sizeof (*font->glyphs));
-        if (NULL == font->glyphs) {
-            LOG_ERROR("Failed to allocate memory for glyphs (%s.fnt)", path);
-            break;
-        }
-
-        if ('\n' != buf[strlen(buf)-1]) {
-            LOG_DEBUG("Sorry, we expect every font file line to end in an LF (%s.fnt)", path);
-            break;
-        }
-        // Also y_advance at the end of the line, but we ignore it.
-        glyph = &font->glyphs[font->n_glyphs-1];
-        // XXX note that these font files by default leave the
-        // character code UTF-8 encoded, stupidly, but I've mangled
-        // them ahead of time.
-        if (9 != sscanf(buf, "%u %hu %hu %hhu %hhu %hhd %hhd %hhd %hhd",
-                        &glyph->char_code, &glyph->x, &glyph->y,
-                        &glyph->w, &glyph->h, &glyph->x_offset, &glyph->y_offset,
-                        &glyph->x_advance, &y_adv)) {
-            LOG_DEBUG("Didn't get exactly nine values; misformatted font file (%s.fnt)?", path);
-            break;
-        }
-
-        if (y_adv > font->line_height)
-            font->line_height = y_adv;
-
-        if (glyph->char_code >= 32 && glyph->char_code < 128)
-            font->printable_ascii_lookup[glyph->char_code-32] = font->n_glyphs-1;
-
-        r = true;
-    }
+    } while((r = read_glyph(font, buf, path)) && !feof(fp));
     fclose(fp);
     if (false == r)
         return false;
-
-    glGenBuffers(1, &a_vertices);
 
     strncpy(buf, path, BUFLEN);
     strncat(buf, ".png", BUFLEN-strlen(buf));
@@ -274,10 +276,11 @@ int main(void)
 {
     video_init();
     text_init();
-    plan(13);
+    plan(14);
     test_font_file_reading();
     todo();
     pass("test shader output");
+    pass("test UTF-8 handling");
     end_todo;
     done_testing();
 }
