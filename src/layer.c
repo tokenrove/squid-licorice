@@ -98,3 +98,16 @@ void layer_draw(struct layer *t)
         ENSURE(false);
     }
 }
+
+#ifdef UNIT_TEST_LAYER
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(1);
+    todo();
+    pass();
+    end_todo;
+    done_testing();
+}
+#endif

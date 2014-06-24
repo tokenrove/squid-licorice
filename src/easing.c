@@ -17,12 +17,34 @@ float easing_cubic(float elapsed, float duration)
     return f * f * f;
 }
 
-#define TAU (2.f*(float)M_PI)
-float easing_elastic(float elapsed, float duration)
+#ifdef UNIT_TEST_EASING
+#include "libtap/tap.h"
+#include <time.h>
+
+#define EPSILON 0.0001
+
+int main(void)
 {
-    const float period = 0.42, amplitude = 1.5, decay = period / TAU * asinf(1.f/amplitude);
-    float f = (elapsed / duration) - 1.f;
-    float x = amplitude * powf(2., 10.f*f);
-    x *= sinf(((elapsed*duration) - decay) * (TAU / period));
-    return -x;
+    enum { n_fns = 2 };
+    easing_fn fns_under_test[n_fns+1] = {
+        easing_linear, easing_cubic, NULL
+    };
+    plan(3 * n_fns);
+    long seed = time(NULL);
+    note("srand48(%ld)\n", seed);
+    srand48(seed);
+    for (easing_fn *f = fns_under_test; *f; ++f) {
+        float start, end, duration, t;
+        start = drand48();
+        end = drand48();
+        duration = drand48();
+        t = ease_float(start, end, 0., duration, *f);
+        ok(fabs(t-start) < EPSILON, "f(0) = %f == %f = start", t, start);
+        t = ease_float(start, end, duration, duration, *f);
+        ok(fabs(t-end) < EPSILON, "f(duration) = %f == %f = end", t, end);
+        t = ease_float(start, end, duration/2, duration, *f);
+        ok(fabs(t-start) < fabs(end-start)+EPSILON, "%f is in [%f,%f]", t, start, end);
+    }
+    done_testing();
 }
+#endif

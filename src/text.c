@@ -247,3 +247,18 @@ uint16_t text_width(struct font *font, const char *s)
     }
     return w;
 }
+
+#ifdef UNIT_TEST_TEXT
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(3);
+    todo();
+    pass("test file reading");
+    pass("test file with only a single blank line");
+    pass("test shader output");
+    end_todo;
+    done_testing();
+}
+#endif

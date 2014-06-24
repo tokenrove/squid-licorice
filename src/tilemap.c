@@ -120,3 +120,17 @@ void tilemap_destroy(struct tilemap *t)
     texture_destroy(&t->atlas.texture);
     memset(t, 0, sizeof (*t));
 }
+
+#ifdef UNIT_TEST_TILEMAP
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(2);
+    todo();
+    pass("test file reading");
+    pass("test shader output");
+    end_todo;
+    done_testing();
+}
+#endif

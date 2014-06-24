@@ -100,3 +100,19 @@ void texture_destroy(struct texture *t)
 {
     glDeleteTextures(1, &t->id);
 }
+
+#ifdef UNIT_TEST_TEXTURE
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(4);
+    todo();
+    pass("test reading PNGs");
+    pass("test reading from raw data");
+    pass("test texture cache");
+    pass("test destroying textures");
+    end_todo;
+    done_testing();
+}
+#endif

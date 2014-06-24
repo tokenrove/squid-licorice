@@ -174,3 +174,16 @@ const char *input_get_readable_event_name_for_binding(input i)
 void input_rebind_and_save(input i)
 {
 }
+
+#ifdef UNIT_TEST_INPUT
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(1);
+    todo();
+    pass();
+    end_todo;
+    done_testing();
+}
+#endif

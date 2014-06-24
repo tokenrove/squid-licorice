@@ -134,3 +134,16 @@ struct alloc_bitmap_iterator alloc_bitmap_iterate(alloc_bitmap bitmap)
         .expunge_marked = it_expunge_marked
     };
 }
+
+#ifdef UNIT_TEST_ALLOC_BITMAP
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(1);
+    todo();
+    pass();
+    end_todo;
+    done_testing();
+}
+#endif

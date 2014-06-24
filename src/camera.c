@@ -31,3 +31,16 @@ void camera_init(void)
     video_init();
     camera_set_ortho_projection(viewport_w, viewport_h);
 }
+
+#ifdef UNIT_TEST_CAMERA
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(1);
+    todo();
+    pass();
+    end_todo;
+    done_testing();
+}
+#endif

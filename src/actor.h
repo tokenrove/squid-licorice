@@ -16,10 +16,10 @@ typedef enum {
     SIGNAL_TICK,
     SIGNAL_COLLISION,
     SIGNAL_OFFSIDE
-} signal;
+} signal_type;
 
 struct event {
-    signal signal;
+    signal_type signal;
 };
 
 struct tick_event {

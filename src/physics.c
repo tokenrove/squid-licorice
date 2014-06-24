@@ -50,3 +50,16 @@ void bodies_update(float dt)
     while((b = iter.next(&iter)))
         body_update(b, dt);
 }
+
+#ifdef UNIT_TEST_PHYSICS
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(1);
+    todo();
+    pass();
+    end_todo;
+    done_testing();
+}
+#endif

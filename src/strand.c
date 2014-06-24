@@ -91,3 +91,16 @@ void strand_destroy(strand strand_)
     memset(st, 0, sizeof (*st));
     free(st);
 }
+
+#ifdef UNIT_TEST_STRAND
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(1);
+    todo();
+    pass();
+    end_todo;
+    done_testing();
+}
+#endif

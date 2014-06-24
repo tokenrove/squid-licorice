@@ -46,3 +46,20 @@ on_error:
      glDeleteProgram(program);
      return 0;
 }
+
+#ifdef UNIT_TEST_SHADER
+#include "libtap/tap.h"
+#include "video.h"
+
+int main(void)
+{
+    plan(2);
+    video_init();
+    GLuint p;
+    p = build_shader_program("trivial test", "void main() { gl_Position = vec4(0); }", "void main() {}");
+    ok(p != 0);
+    p = build_shader_program("does not write to gl_Position", "void main() {}", "void main() {}");
+    ok(p == 0);
+    done_testing();
+}
+#endif

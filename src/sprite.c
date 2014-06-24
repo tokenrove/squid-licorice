@@ -59,3 +59,16 @@ void sprite_draw(struct sprite *s, position p)
     uint8_t indices[] = { 0,1,2, 2,3,0 };
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, indices);
 }
+
+#ifdef UNIT_TEST_SPRITE
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(1);
+    todo();
+    pass();
+    end_todo;
+    done_testing();
+}
+#endif

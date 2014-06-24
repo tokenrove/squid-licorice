@@ -160,3 +160,16 @@ struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
     ENSURE(a->body = body_new(p, arch->collision_radius, arch->mass));
     return a;
 }
+
+#ifdef UNIT_TEST_ACTOR
+#include "libtap/tap.h"
+
+int main(void)
+{
+    plan(1);
+    todo();
+    pass();
+    end_todo;
+    done_testing();
+}
+#endif
