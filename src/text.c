@@ -60,9 +60,9 @@ bool text_load_font(struct font *font, const char *path)
     bool r = false;
     fgets(buf, BUFLEN, fp);  // skip first line
     while (!feof(fp)) {
+        if (NULL == fgets(buf, BUFLEN, fp)) break;
         int8_t y_adv;
         struct glyph *glyph;
-        if (NULL == fgets(buf, BUFLEN, fp)) break;
         r = false;
         ++font->n_glyphs;
         // XXX next font format should declare the number of glyphs up front
@@ -160,7 +160,7 @@ static void render_glyph(struct glyph *g, position p)
     const GLfloat vertices[] = { 0., 0., g->w, 0., g->w, g->h, 0., g->h };
     glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
 
-    uint8_t indices[] = { 0,1,2, 2,3,0 };
+    static const uint8_t indices[] = { 0,1,2, 2,3,0 };
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, indices);
 }
 
@@ -250,13 +250,33 @@ uint16_t text_width(struct font *font, const char *s)
 
 #ifdef UNIT_TEST_TEXT
 #include "libtap/tap.h"
+#include "video.h"
+
+static void test_font_file_reading(void)
+{
+    struct font font;
+    note("font file reading");
+    ok(!text_load_font(&font, "t/text.t.does-not-exist"), "Non-existent file");
+    ok(text_load_font(&font, "t/text.t.0"), "Load a valid font");
+    cmp_ok(font.n_glyphs, "==", 94);
+    dies_ok({text_load_font(&font, "t/text.t.1-missing-png");}, "Font with missing PNG");
+    ok(!text_load_font(&font, "t/text.t.2-empty"), "Empty file");
+    ok(!text_load_font(&font, "t/text.t.3-empty"), "Empty file with blank line");
+    ok(!text_load_font(&font, "t/text.t.4-truncated"), "Truncated file");
+    ok(text_load_font(&font, "t/text.t.5-extreme-values"), "Extreme values");
+    cmp_ok(font.n_glyphs, "==", 1);
+    ok(text_load_font(&font, "t/text.t.6-crlf-endings"), "CRLF endings");
+    cmp_ok(font.n_glyphs, "==", 94);
+    ok(!text_load_font(&font, "t/text.t.7-duplicate-glyphs"), "Duplicate entries");
+}
 
 int main(void)
 {
-    plan(3);
+    video_init();
+    text_init();
+    plan(13);
+    test_font_file_reading();
     todo();
-    pass("test file reading");
-    pass("test file with only a single blank line");
     pass("test shader output");
     end_todo;
     done_testing();
