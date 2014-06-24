@@ -57,7 +57,7 @@ bool text_load_font(struct font *font, const char *path)
         LOG_ERROR("file not found (%s)", buf);
         return false;
     }
-    bool r;
+    bool r = false;
     fgets(buf, BUFLEN, fp);  // skip first line
     while (!feof(fp)) {
         uint8_t y_adv;
