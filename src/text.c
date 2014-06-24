@@ -45,13 +45,13 @@ void text_init(void)
 bool text_load_font(struct font *font, const char *path)
 {
     enum { BUFLEN = 127 };
-    char buf[BUFLEN+1];
+    char buf[BUFLEN+1] = {0};
     FILE *fp;
 
     *font = (struct font){0};
 
     strncpy(buf, path, BUFLEN);
-    strncat(buf, ".fnt", BUFLEN);
+    strncat(buf, ".fnt", BUFLEN-strlen(buf));
     fp = fopen(buf, "rb");
     if (NULL == fp) {
         LOG_ERROR("file not found (%s)", buf);
@@ -104,7 +104,7 @@ bool text_load_font(struct font *font, const char *path)
     glGenBuffers(1, &a_vertices);
 
     strncpy(buf, path, BUFLEN);
-    strncat(buf, ".png", BUFLEN);
+    strncat(buf, ".png", BUFLEN-strlen(buf));
     return texture_from_png(&font->texture, buf);
 }
 
