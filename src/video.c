@@ -1,10 +1,10 @@
 #include <SDL2/SDL.h>
-#include <GL/glew.h>
 #include <GL/gl.h>
 #include <stdbool.h>
 
 #include "ensure.h"
 #include "video.h"
+#include "gl.h"
 #include "camera.h"
 #include "log.h"
 
@@ -44,19 +44,12 @@ void video_init(void)
 
     atexit(video_atexit);
 
-    ENSURE(GLEW_OK == glewInit());
-
-    // XXX parameterize behavior by extensions supported here
-
     struct { GLint x, y, w, h; } viewport;
     glGetIntegerv(GL_VIEWPORT, (GLint*)&viewport);
     ENSURE(0 == viewport.x && 0 == viewport.y);
     viewport_w = viewport.w; viewport_h = viewport.h;
 
-    glDisable(GL_DEPTH_TEST);
-    //glClearColor(.8, .6, .5, 1.);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl_init();
 }
 
 void video_start_frame(void) { glClear(GL_COLOR_BUFFER_BIT); }

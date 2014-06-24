@@ -10,7 +10,7 @@ CFLAGS=$(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) $(CFLAGS_RELEASE)
 LDFLAGS_LIBS=`pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
 LDFLAGS=-fwhole-program $(LDFLAGS_LIBS)
 VPATH=src
-ENGINE_SRC=timer.c texture.c shader.c tilemap.c sprite.c text.c video.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c
+ENGINE_SRC=timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c
 GAME_SRC=layer.c actor.c physics.c stage.c level.c game.c osd.c main.c
 SRC=$(ENGINE_SRC) $(GAME_SRC)
 OBJECTS=$(addprefix obj/, $(SRC:.c=.o))
@@ -40,50 +40,54 @@ obj/%.frag.i: src/%.frag
 
 vendor/libtap/libtap.a:
 	$(MAKE) -C vendor/libtap
+vendor/glew/lib/libGLEW.a:
+	$(MAKE) -C vendor/glew SYSTEM=linux-osmesa extensions all
 
 TESTS=t/strand.t t/easing.t t/shader.t t/tilemap.t t/actor.t t/camera.t t/input.t t/layer.t t/physics.t t/sprite.t t/text.t t/texture.t
-CFLAGS_TEST=$(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -fprofile-arcs -ftest-coverage
-LDFLAGS_TEST=$(LDFLAGS_LIBS) -Lvendor/libtap -ltap
+CFLAGS_TEST=-Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -fprofile-arcs -ftest-coverage
+LDFLAGS_TEST=-Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa
 
-t/easing.t: src/easing.c | t/
+$(TESTS): | vendor/libtap/libtap.a vendor/glew/lib/libGLEW.a t/
+
+t/easing.t: src/easing.c
 	$(CC) -DUNIT_TEST_EASING $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/strand.t: src/strand.c | t/
+t/strand.t: src/strand.c
 	$(CC) -DUNIT_TEST_STRAND $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/alloc_bitmap.t: src/alloc_bitmap.c src/log.c | t/
+t/alloc_bitmap.t: src/alloc_bitmap.c src/log.c
 	$(CC) -DUNIT_TEST_ALLOC_BITMAP $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
 
-t/shader.t: src/shader.c src/log.c src/video.c | t/
+t/shader.t: src/shader.c src/log.c src/test_video.c src/gl.c
 	$(CC) -DUNIT_TEST_SHADER $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
 
-t/actor.t: src/actor.c src/input.c src/log.c src/alloc_bitmap.c src/physics.c src/sprite.c src/texture.c src/camera.c src/video.c src/shader.c | t/
+t/actor.t: src/actor.c src/input.c src/log.c src/alloc_bitmap.c src/physics.c src/sprite.c src/texture.c src/camera.c src/test_video.c src/gl.c src/shader.c
 	$(CC) -DUNIT_TEST_ACTOR $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/camera.t: src/camera.c src/video.c src/log.c | t/
+t/camera.t: src/camera.c src/test_video.c src/gl.c src/log.c
 	$(CC) -DUNIT_TEST_CAMERA $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/input.t: src/input.c src/log.c | t/
+t/input.t: src/input.c src/log.c
 	$(CC) -DUNIT_TEST_INPUT $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/texture.t: src/texture.c src/log.c | t/
+t/texture.t: src/texture.c src/log.c
 	$(CC) -DUNIT_TEST_TEXTURE $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/layer.t: src/layer.c src/tilemap.c src/video.c src/camera.c src/log.c src/texture.c src/shader.c | t/
+t/layer.t: src/layer.c src/tilemap.c src/test_video.c src/gl.c src/camera.c src/log.c src/texture.c src/shader.c
 	$(CC) -DUNIT_TEST_LAYER $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/physics.t: src/physics.c src/alloc_bitmap.c src/log.c | t/
+t/physics.t: src/physics.c src/alloc_bitmap.c src/log.c
 	$(CC) -DUNIT_TEST_PHYSICS $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
 
-t/tilemap.t: src/tilemap.c src/texture.c src/shader.c src/log.c src/camera.c src/video.c | t/
+t/tilemap.t: src/tilemap.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 	$(CC) -DUNIT_TEST_TILEMAP $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/sprite.t: src/sprite.c src/texture.c src/shader.c src/log.c src/camera.c src/video.c | t/
+t/sprite.t: src/sprite.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 	$(CC) -DUNIT_TEST_SPRITE $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
-t/text.t: src/text.c src/texture.c src/shader.c src/log.c src/camera.c src/video.c | t/
+t/text.t: src/text.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 	$(CC) -DUNIT_TEST_TEXT $(CFLAGS_TEST) -g -o $@ $^ $(LDFLAGS_TEST)
 
 test: check check-syntax
 
 check: $(TESTS)
-	prove
+	MESA_DEBUG=1 prove
 
 # XXX use scan-build make instead?
 check-syntax: $(SRC)
-	$(CLANG) --analyze -Weverything -Wextra -Werror -pedantic $(CFLAGS_INCLUDE) $^
 	$(CC) $(CFLAGS) -pedantic -Werror -fsyntax-only $^
+	$(CLANG) --analyze -Weverything -Wextra -Werror -pedantic $(CFLAGS_INCLUDE) $^
 
 clean:
 	$(RM) $(CLEAN)

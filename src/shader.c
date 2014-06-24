@@ -53,11 +53,14 @@ on_error:
 
 int main(void)
 {
-    plan(2);
+    plan(4);
     video_init();
     GLuint p;
     p = build_shader_program("trivial test", "void main() { gl_Position = vec4(0); }", "void main() {}");
     ok(p != 0);
+    ok(GL_TRUE == glIsProgram(p));
+    glDeleteProgram(p);
+    ok(GL_FALSE == glIsProgram(p));
     p = build_shader_program("does not write to gl_Position", "void main() {}", "void main() {}");
     ok(p == 0);
     done_testing();
