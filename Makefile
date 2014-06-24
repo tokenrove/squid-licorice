@@ -1,21 +1,27 @@
 .PHONY: clean all test check check-syntax
 
-CLANG=clang
+CONFIGURATION	?= DEBUG
+CC		?= gcc
+CLANG		?= clang
+
 PACKAGES=sdl2 gl glu glew
 CFLAGS_WARN=-Wall -Wextra -Wshadow -Winit-self -Wwrite-strings -Wswitch -Wswitch-default -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wformat-security -fstrict-aliasing -Wstrict-aliasing
 CFLAGS_INCLUDE=-Ivendor -Iobj `pkg-config --cflags $(PACKAGES)`
 CFLAGS_BASE=-fms-extensions -std=gnu11
-CFLAGS_RELEASE=-g -O3
-CFLAGS=$(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) $(CFLAGS_RELEASE)
+CFLAGS_RELEASE=-O3
+CFLAGS_DEBUG=-g -pg
+CFLAGS=$(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) $(CFLAGS_$(CONFIGURATION))
+LDFLAGS_DEBUG=
+LDFLAGS_RELEASE=-fwhole-program
 LDFLAGS_LIBS=`pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
-LDFLAGS=-fwhole-program $(LDFLAGS_LIBS)
+LDFLAGS=$(LDFLAGS_LIBS) $(LDFLAGS_$(CONFIGURATION))
 VPATH=src
 ENGINE_SRC=timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c
 GAME_SRC=layer.c actor.c physics.c stage.c level.c game.c osd.c main.c
 SRC=$(ENGINE_SRC) $(GAME_SRC)
 OBJECTS=$(addprefix obj/, $(SRC:.c=.o))
 DEPS=$(OBJECTS:%.o=%.d)
-CLEAN=$(OBJECTS) $(DEPS) obj/squid
+CLEAN=$(OBJECTS) $(DEPS) obj/squid $(TESTS)
 
 all: obj/squid check
 
@@ -44,8 +50,8 @@ vendor/glew/lib/libGLEW.a:
 	$(MAKE) -C vendor/glew SYSTEM=linux-osmesa extensions all
 
 TESTS=t/strand.t t/easing.t t/shader.t t/tilemap.t t/actor.t t/camera.t t/input.t t/layer.t t/physics.t t/sprite.t t/text.t t/texture.t
-CFLAGS_TEST=-Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -fprofile-arcs -ftest-coverage
-LDFLAGS_TEST=-Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa
+CFLAGS_TEST=-fprofile-arcs -ftest-coverage -fstack-usage -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE)
+LDFLAGS_TEST=-Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa -lgcov
 
 $(TESTS): | vendor/libtap/libtap.a vendor/glew/lib/libGLEW.a t/
 
