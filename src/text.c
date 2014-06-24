@@ -60,7 +60,7 @@ bool text_load_font(struct font *font, const char *path)
     bool r = false;
     fgets(buf, BUFLEN, fp);  // skip first line
     while (!feof(fp)) {
-        uint8_t y_adv;
+        int8_t y_adv;
         struct glyph *glyph;
         if (NULL == fgets(buf, BUFLEN, fp)) break;
         r = false;

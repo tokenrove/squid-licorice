@@ -29,7 +29,7 @@ static enum handler_return player_default(struct actor *me, struct event *e)
     return STATE_IGNORED;
 }
 
-static enum handler_return player_initial(struct actor *me, struct event *e)
+static enum handler_return player_initial(struct actor *me, struct event *e __attribute__((__unused__)))
 {
     me->sprite.x = 0;
     me->sprite.y = 0;

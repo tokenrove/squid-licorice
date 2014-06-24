@@ -166,12 +166,12 @@ void input_update(void)
     ENSURE(watchdog);
 }
 
-const char *input_get_readable_event_name_for_binding(input i)
+const char *input_get_readable_event_name_for_binding(input i __attribute__((__unused__)))
 {
     return "unknown";
 }
 
-void input_rebind_and_save(input i)
+void input_rebind_and_save(input i __attribute__((__unused__)))
 {
 }
 
@@ -182,7 +182,7 @@ int main(void)
 {
     plan(1);
     todo();
-    pass();
+    pass("");
     end_todo;
     done_testing();
 }

@@ -122,7 +122,7 @@ static void it_mark_for_removal(struct alloc_bitmap_iterator *me)
     remove_member(t, me->i, me->j);
 }
 
-static void it_expunge_marked(struct alloc_bitmap_iterator *unused) {}
+static void it_expunge_marked(struct alloc_bitmap_iterator *_ __attribute__((__unused__))) {}
 
 struct alloc_bitmap_iterator alloc_bitmap_iterate(alloc_bitmap bitmap)
 {

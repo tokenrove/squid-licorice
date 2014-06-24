@@ -35,14 +35,12 @@ static enum outcome inner_game_loop(strand self, struct game *game)
     osd_init();
 
     enum outcome outcome = NO_OUTCOME;
-    float elapsed_time = 0.f;
-
     do {
         stage_draw();
         actors_draw();
         osd_draw();
 
-        elapsed_time = strand_yield(self);
+        float elapsed_time = strand_yield(self);
         stage_update(elapsed_time);
         bodies_update(elapsed_time);
         strand_resume(level->strand, elapsed_time);

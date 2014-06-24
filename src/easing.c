@@ -25,11 +25,10 @@ float easing_cubic(float elapsed, float duration)
 
 int main(void)
 {
-    enum { n_fns = 2 };
-    easing_fn fns_under_test[n_fns+1] = {
+    easing_fn fns_under_test[] = {
         easing_linear, easing_cubic, NULL
     };
-    plan(3 * n_fns);
+    plan(3 * (sizeof (fns_under_test) / sizeof (*fns_under_test) - 1));
     long seed = time(NULL);
     note("srand48(%ld)\n", seed);
     srand48(seed);

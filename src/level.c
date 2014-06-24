@@ -15,9 +15,8 @@
 static void wait_for_n_screens(strand self, struct layer *layer, float n_screens)
 {
     double distance = 0.;
-    float elapsed_time;
     while (distance < (viewport_h * n_screens)) {
-        elapsed_time = strand_yield(self);
+        float elapsed_time = strand_yield(self);
         distance += layer->speed * elapsed_time;
     }
 }
