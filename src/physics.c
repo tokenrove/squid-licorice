@@ -62,8 +62,11 @@ static position random_position(void)
 static void simple_test(unsigned n_bodies, unsigned n_iterations)
 {
     bodies_init(n_bodies);
-    for (unsigned i = 0; i < n_bodies; ++i)
-        body_new(random_position(), drand48(), drand48());
+    for (unsigned i = 0; i < 2*n_bodies; ++i) {
+        struct body *b;
+        b = body_new(random_position(), drand48(), drand48());
+        if (i%2) body_destroy(b);
+    }
     for (unsigned i = 0; i < n_iterations; ++i)
         bodies_update(drand48());
     bodies_destroy();

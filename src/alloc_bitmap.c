@@ -35,6 +35,7 @@ alloc_bitmap alloc_bitmap_init(size_t count, size_t member_size)
     }
     if (member_size & (sizeof (void*)-1))
         LOG_DEBUG("member size probably isn't properly aligned: %d", member_size);
+    ENSURE(member_size);
 
     struct t *t;
     ENSURE(t = calloc(1, sizeof (*t)));
@@ -143,7 +144,7 @@ struct alloc_bitmap_iterator alloc_bitmap_iterate(alloc_bitmap bitmap)
 #ifdef UNIT_TEST_ALLOC_BITMAP
 #include "libtap/tap.h"
 
-static void create_iterate_remove(size_t n)
+static void test_create_iterate_remove(size_t n)
 {
     note("%s(%d)", __func__, n);
     alloc_bitmap bm = alloc_bitmap_init(n, sizeof (size_t));
@@ -154,8 +155,7 @@ static void create_iterate_remove(size_t n)
     struct alloc_bitmap_iterator it = alloc_bitmap_iterate(bm);
     for (size_t i = 0; i < n; ++i) {
         size_t *p = it.next(&it);
-        ok(NULL != p, "the iterator returned another item");
-        cmp_ok(*p, "==", i, "iteration should be incremental");
+        ENSURE(p && *p == i);
         if (*p % 2) it.mark_for_removal(&it);
     }
     it.expunge_marked(&it);
@@ -163,17 +163,43 @@ static void create_iterate_remove(size_t n)
     it = alloc_bitmap_iterate(bm);
     for (size_t i = 0; i < n; i += 2) {
         size_t *p = it.next(&it);
-        ok(NULL != p, "the iterator returned another item");
-        cmp_ok(*p, "==", i, "we should have removed every second one");
+        ENSURE(p && *p == i);
     }
 
     alloc_bitmap_destroy(bm);
 }
 
+static void test_overflow(void)
+{
+    note("Test overflow");
+    const int n = closest_power_of_2(12*1024);
+    alloc_bitmap bm = alloc_bitmap_init(n, 1);
+    for (int i = 0; i < n; ++i) {
+        uint8_t *p = alloc_bitmap_alloc_first_free(bm);
+        ENSURE(p && *p == 0);
+    }
+    ok(NULL == alloc_bitmap_alloc_first_free(bm), "No room at the inn.");
+    for (int i = 0; i < 42; ++i)
+        ENSURE(NULL == alloc_bitmap_alloc_first_free(bm));
+    alloc_bitmap_destroy(bm);
+}
+
+static void test_tiny_bitmap(void)
+{
+    alloc_bitmap bm = alloc_bitmap_init(1, sizeof(intptr_t));
+    intptr_t *p = alloc_bitmap_alloc_first_free(bm);
+    *p = 42;
+    alloc_bitmap_remove(bm, p);
+    alloc_bitmap_destroy(bm);
+}
+
 int main(void)
 {
-    plan(3000);
-    create_iterate_remove(1000);
+    plan(5);
+    lives_ok({test_create_iterate_remove(1000);});
+    dies_ok({alloc_bitmap_init(1000, 0);}, "member size can't be 0");
+    lives_ok({test_tiny_bitmap();}, "tiny bitmap");
+    lives_ok({test_overflow();}, "Test overflow");
     done_testing();
 }
 #endif
