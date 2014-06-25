@@ -101,7 +101,7 @@ void strand_destroy(strand strand_)
 static void run_two_strands_to_completion(void)
 {
     unsigned count_a = 0, count_b = 0;
-    void fn(void *self, void *data) {
+    void fn(strand self, void *data) {
         double accum = 0.;
         while (accum < 1.) {
             ++*(unsigned *)data;
@@ -120,13 +120,57 @@ static void run_two_strands_to_completion(void)
     cmp_ok(count_b, ">", 1);
 }
 
+static void test_recursive_1(void)
+{
+    void fn(strand self) {
+        static int n = 10;
+        while (--n > 0) {
+            strand_yield(self);
+            fn(self);
+        }
+    };
+    strand s = strand_spawn_0(fn, STRAND_DEFAULT_STACK_SIZE);
+    ok(NULL != s);
+    int count = 1;
+    while (strand_is_alive(s)) {
+        ++count;
+        strand_resume(s, 1.);
+    }
+    cmp_ok(count, "==", 10);
+}
+
+static long simple_factorial(strand self, int n)
+{
+    if (n <= 0) return 1;
+    strand_yield(self);
+    return n * simple_factorial(self, n-1);
+}
+
+static void test_recursive_2(void)
+{
+    long output;
+    void fn(strand self, void *data) {
+        output = simple_factorial(self, (intptr_t)data);
+    };
+    strand s = strand_spawn_1(fn, STRAND_DEFAULT_STACK_SIZE, (void *)12);
+    ok(NULL != s);
+    int count = 0;
+    while (strand_is_alive(s)) {
+        ++count;
+        strand_resume(s, 1.);
+    }
+    cmp_ok(count, "==", 12);
+    cmp_ok(output, "==", 479001600);
+}
+
 static void test_basic_usage(void)
 {
+    note("Basic usage");
     lives_ok({run_two_strands_to_completion();}, "Run two strands to completion.");
 
     lives_ok({
             bool has_run = false;
-            void fn(void *_ __attribute__ ((unused))) {
+            void fn(strand _ __attribute__ ((unused))) {
                 has_run = true;
                 /* exit immediately */
             };
@@ -137,19 +181,25 @@ static void test_basic_usage(void)
             strand_resume(s, 1.);
             strand_destroy(s);
         }, "Run a strand that exits immediately.");
+
+    lives_ok({test_recursive_1();}, "Test a basic recursive strand.");
+    lives_ok({test_recursive_2();});
 }
 
 static void test_too_small_stack(void)
 {
-    void fn_a(void *self) {
+    note("Test stack overflow");
+
+    void fn_a(strand _ __attribute__ ((unused))) {
         int space[20];
         space[19] = 42;
         fprintf(stderr, "space[19] == %d\n", space[19]);
     };
     dies_ok({
             strand a = strand_spawn_0(fn_a, 10);
+            ENSURE(a);
         }, "Not enough space to begin with");
-    void fn_b(void *self) {
+    void fn_b(strand self) {
         strand_yield(self);
         fn_b(self);
     };
@@ -159,6 +209,94 @@ static void test_too_small_stack(void)
                 strand_resume(s, 1.);
             strand_destroy(s);
         }, "Recursive function exhausts stack space");
+
+    note("TODO: Is there a way to easily test stack underflow?");
+}
+
+static void test_nested_threads_1(int initial_count, int n_children)
+{
+    void fn_a(strand self, void *data_) {
+        int *data = data_;
+        while (true) {
+            float dt = strand_yield(self);
+            *data -= (int)dt;
+        }
+    }
+    int counter;
+    void fn_b(strand self) {
+        strand children[n_children];
+        for (int i = 0; i < n_children; ++i) {
+            children[i] = strand_spawn_1(fn_a, STRAND_DEFAULT_STACK_SIZE, &counter);
+            ok(NULL != children[i]);
+        }
+        float dt = strand_yield(self);
+        while (counter > 0) {
+            for (int i = 0; i < n_children; ++i)
+                strand_resume(children[i], dt);
+            dt = strand_yield(self);
+        }
+        for (int i = 0; i < n_children; ++i)
+            strand_destroy(children[i]);
+    }
+
+    note("test_nested_threads_1(%d, %d)", initial_count, n_children);
+    counter = initial_count;
+    strand s = strand_spawn_0(fn_b, STRAND_DEFAULT_STACK_SIZE);
+    int n = 0;
+    while (strand_is_alive(s)) {
+        strand_resume(s, 1.);
+        ++n;
+    }
+    strand_destroy(s);
+    cmp_ok(counter, "==", -n_children + (initial_count%n_children));
+    cmp_ok(n, "==", 2+(initial_count/n_children));
+}
+
+static void test_nested_threads_2(int depth)
+{
+    void fn(strand self, void *data) {
+        intptr_t n = (intptr_t)data;
+        if (n < 0) return;
+        strand_yield(self);
+        strand child = strand_spawn_1(fn, STRAND_DEFAULT_STACK_SIZE, (void *)(n-1));
+        while (strand_is_alive(child)) {
+            float dt = strand_yield(self);
+            strand_resume(child, dt);
+        }
+        strand_destroy(child);
+    }
+    intptr_t n = depth;
+
+    note("test_nested_threads_2(%d)", depth);
+    strand s = strand_spawn_1(fn, STRAND_DEFAULT_STACK_SIZE, (void *)n);
+    while (strand_is_alive(s)) strand_resume(s, 1.);
+    strand_destroy(s);
+}
+
+static void test_many_threads_1(int n)
+{
+    void fn(strand self) {
+        static double t = 10.;
+        while (t > 0.)
+            t -= strand_yield(self);
+    };
+    strand s[n];
+
+    note("test_many_threads_1(%d)", n);
+    for (int i = 0; i < n; ++i)
+        s[i] = strand_spawn_0(fn, 32);
+
+    bool any_alive;
+    do {
+        any_alive = false;
+        for (int i = 0; i < n; ++i) {
+            strand_resume(s[i], 1.);
+            any_alive |= strand_is_alive(s[i]);
+        }
+    } while(any_alive);
+
+    for (int i = 0; i < n; ++i)
+        strand_destroy(s[i]);
 }
 
 int main(void)
@@ -166,9 +304,13 @@ int main(void)
     long seed = time(NULL);
     note("srand48(%ld)\n", seed);
     srand48(seed);
-    plan(9);
+    plan(40);
     test_basic_usage();
     test_too_small_stack();
+    lives_ok({test_nested_threads_1(42, 4);});
+    lives_ok({test_nested_threads_1(107, 12);});
+    lives_ok({test_nested_threads_2(120);});
+    lives_ok({test_many_threads_1(12*1024);});
     done_testing();
 }
 #endif
