@@ -37,7 +37,7 @@ obj/:
 t/:
 	mkdir -p t/
 
-obj/%.o: src/%.c
+obj/%.o: src/%.c | obj/
 	$(CC) -MD -c $(CFLAGS) -o $@ $<
 obj/%.vert.i: src/%.vert
 	xxd -i < $< > $@
