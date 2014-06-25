@@ -9,7 +9,7 @@ CFLAGS_WARN=-Wall -Wextra -Wshadow -Winit-self -Wwrite-strings -Wswitch -Wswitch
 CFLAGS_INCLUDE=-Ivendor -Iobj `pkg-config --cflags $(PACKAGES)`
 CFLAGS_BASE=-fms-extensions -std=gnu11
 CFLAGS_RELEASE=-O3
-CFLAGS_DEBUG=-g -pg
+CFLAGS_DEBUG=-g -pg -DDEBUG
 CFLAGS=$(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) $(CFLAGS_$(CONFIGURATION))
 LDFLAGS_DEBUG=
 LDFLAGS_RELEASE=-fwhole-program
@@ -50,7 +50,7 @@ vendor/glew/lib/libGLEW.a:
 	$(MAKE) -C vendor/glew SYSTEM=linux-osmesa extensions all
 
 TESTS=t/strand.t t/easing.t t/shader.t t/tilemap.t t/actor.t t/camera.t t/input.t t/layer.t t/physics.t t/sprite.t t/text.t t/texture.t
-CFLAGS_TEST=-fprofile-arcs -ftest-coverage -fstack-usage -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE)
+CFLAGS_TEST=-fprofile-arcs -ftest-coverage -fstack-usage -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -DDEBUG -DTESTING
 LDFLAGS_TEST=-Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa -lgcov
 
 $(TESTS): | vendor/libtap/libtap.a vendor/glew/lib/libGLEW.a t/
