@@ -8,24 +8,25 @@
 #include "ensure.h"
 #include "log.h"
 
-enum { SHIFT = 5, MASK = 0x1f };
+enum { SHIFT = 5, MASK = 0x1f, LIMB_SIZE = 32 };
+typedef uint32_t limb;
 
 struct t {
     size_t count, member_size, actual;
-    uint32_t *bits;
+    limb *bits;
     void *members;
 };
 
 /* Per Hacker's Delight, 3-2 */
-static inline uint32_t clp2_32(uint32_t x)
+static inline limb closest_power_of_2(limb x)
 {
-    return 1 << (32 - __builtin_clz(x-1));
+    return 1 << (LIMB_SIZE - __builtin_clz(x-1));
 }
 
 alloc_bitmap alloc_bitmap_init(size_t count, size_t member_size)
 {
     size_t orig_count = count;
-    count = clp2_32(count);
+    count = closest_power_of_2(count);
     if (orig_count != count)
         LOG_DEBUG("count wasn't a power of 2 (%d), rounding to %d", orig_count, count);
     if (count < 1+MASK) {
@@ -39,7 +40,7 @@ alloc_bitmap alloc_bitmap_init(size_t count, size_t member_size)
     ENSURE(t = calloc(1, sizeof (*t)));
     ENSURE(t->members = calloc(count, member_size));
     count >>= SHIFT;
-    ENSURE(t->bits = calloc(count, sizeof (uint32_t)));
+    ENSURE(t->bits = calloc(count, sizeof (limb)));
     t->count = count;
     t->member_size = member_size;
     return t;
@@ -103,9 +104,12 @@ bool alloc_bitmap_remove(alloc_bitmap t_, void *m)
 static void *it_next(struct alloc_bitmap_iterator *me)
 {
     struct t *t = me->t;
-    ENSURE(me->i < t->count && me->j < 32);
+    if (me->j == LIMB_SIZE) {
+        ++me->i; me->j = 0;
+    }
+    ENSURE(me->i < t->count && me->j < LIMB_SIZE);
     for (; me->i < t->count && me->n < t->actual; ++me->i, me->j = 0) {
-        uint32_t x = t->bits[me->i] >> me->j;
+        limb x = t->bits[me->i] >> me->j;
         if (0 == x) continue;
         size_t bit = ffs(x);
         ENSURE(bit);
