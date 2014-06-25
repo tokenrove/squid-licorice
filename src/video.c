@@ -54,3 +54,19 @@ void video_init(void)
 
 void video_start_frame(void) { glClear(GL_COLOR_BUFFER_BIT); }
 void video_end_frame(void) { SDL_GL_SwapWindow(sdl_window); }
+
+#include <pnglite.h>
+
+void video_save_fb_screenshot(const char *path)
+{
+    png_t png;
+    png_init(NULL, NULL);
+    ENSURE(PNG_NO_ERROR == png_open_file_write(&png, path));
+    uint8_t *pels = calloc(3, viewport_w * viewport_h);
+    glFinish();
+    glReadPixels(0, 0, viewport_w, viewport_h, GL_RGB, GL_UNSIGNED_BYTE, pels);
+    ENSURE(PNG_NO_ERROR == png_set_data(&png, viewport_w, viewport_h, 8, PNG_TRUECOLOR, pels));
+    ENSURE(PNG_NO_ERROR == png_close_file(&png));
+    ENSURE(pels[0] != 0);
+}
+
