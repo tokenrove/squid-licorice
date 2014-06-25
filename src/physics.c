@@ -54,12 +54,28 @@ void bodies_update(float dt)
 #ifdef UNIT_TEST_PHYSICS
 #include "libtap/tap.h"
 
+static position random_position(void)
+{
+    return drand48() + I*drand48();
+}
+
+static void simple_test(unsigned n_bodies, unsigned n_iterations)
+{
+    bodies_init(n_bodies);
+    for (unsigned i = 0; i < n_bodies; ++i)
+        body_new(random_position(), drand48(), drand48());
+    for (unsigned i = 0; i < n_iterations; ++i)
+        bodies_update(drand48());
+    bodies_destroy();
+}
+
 int main(void)
 {
     plan(1);
-    todo();
-    pass();
-    end_todo;
+    long seed = time(NULL);
+    note("srand48(%ld)\n", seed);
+    srand48(seed);
+    lives_ok({simple_test(1000, 10000);});
     done_testing();
 }
 #endif
