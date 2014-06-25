@@ -158,6 +158,7 @@ static void test_create_iterate_remove(size_t n)
         ENSURE(p && *p == i);
         if (*p % 2) it.mark_for_removal(&it);
     }
+    ENSURE(NULL == it.next(&it));
     it.expunge_marked(&it);
 
     it = alloc_bitmap_iterate(bm);
@@ -165,6 +166,7 @@ static void test_create_iterate_remove(size_t n)
         size_t *p = it.next(&it);
         ENSURE(p && *p == i);
     }
+    ENSURE(NULL == it.next(&it));
 
     alloc_bitmap_destroy(bm);
 }
