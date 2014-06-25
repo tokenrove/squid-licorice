@@ -123,7 +123,8 @@ static void *it_next(struct alloc_bitmap_iterator *me)
 static void it_mark_for_removal(struct alloc_bitmap_iterator *me)
 {
     struct t *t = me->t;
-    remove_member(t, me->i, me->j);
+    --me->n;
+    remove_member(t, me->i, me->j-1);
 }
 
 static void it_expunge_marked(struct alloc_bitmap_iterator *_ __attribute__((__unused__))) {}
@@ -153,7 +154,7 @@ static void create_iterate_remove(size_t n)
     struct alloc_bitmap_iterator it = alloc_bitmap_iterate(bm);
     for (size_t i = 0; i < n; ++i) {
         size_t *p = it.next(&it);
-        ok(NULL != p);
+        ok(NULL != p, "the iterator returned another item");
         cmp_ok(*p, "==", i, "iteration should be incremental");
         if (*p % 2) it.mark_for_removal(&it);
     }
@@ -162,7 +163,7 @@ static void create_iterate_remove(size_t n)
     it = alloc_bitmap_iterate(bm);
     for (size_t i = 0; i < n; i += 2) {
         size_t *p = it.next(&it);
-        ok(NULL != p);
+        ok(NULL != p, "the iterator returned another item");
         cmp_ok(*p, "==", i, "we should have removed every second one");
     }
 
@@ -171,7 +172,7 @@ static void create_iterate_remove(size_t n)
 
 int main(void)
 {
-    plan(1);
+    plan(3000);
     create_iterate_remove(1000);
     done_testing();
 }
