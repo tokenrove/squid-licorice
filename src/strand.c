@@ -64,10 +64,13 @@ strand strand_spawn_1(void (*fn)(strand, void *), size_t size, void *arg)
 
 void strand_resume(strand strand_, float dt)
 {
+#ifdef DEBUG
     /* We disallow dt less than some epsilon to avoid numerical
      * instability, at least in a debug build. */
     ENSURE(dt > 0.001f);
+#endif
     struct t *st = strand_;
+    if (!st->is_alive) return;
     st->dt = dt;
     swapcontext(&st->parent, &st->context);
 }
@@ -95,12 +98,77 @@ void strand_destroy(strand strand_)
 #ifdef UNIT_TEST_STRAND
 #include "libtap/tap.h"
 
+static void run_two_strands_to_completion(void)
+{
+    unsigned count_a = 0, count_b = 0;
+    void fn(void *self, void *data) {
+        double accum = 0.;
+        while (accum < 1.) {
+            ++*(unsigned *)data;
+            accum += strand_yield(self);
+        }
+    };
+    strand a = strand_spawn_1(fn, 32, &count_a);
+    strand b = strand_spawn_1(fn, 32, &count_b);
+    while (strand_is_alive(a) || strand_is_alive(b)) {
+        if (strand_is_alive(a)) strand_resume(a, drand48());
+        if (strand_is_alive(b)) strand_resume(b, drand48());
+    }
+    strand_destroy(b);
+    strand_destroy(a);
+    cmp_ok(count_a, ">", 1);
+    cmp_ok(count_b, ">", 1);
+}
+
+static void test_basic_usage(void)
+{
+    lives_ok({run_two_strands_to_completion();}, "Run two strands to completion.");
+
+    lives_ok({
+            bool has_run = false;
+            void fn(void *_ __attribute__ ((unused))) {
+                has_run = true;
+                /* exit immediately */
+            };
+            strand s = strand_spawn_0(fn, STRAND_DEFAULT_STACK_SIZE);
+            ok(NULL != s);
+            ok(!strand_is_alive(s));
+            ok(has_run, "Strand completed work when spawned");
+            strand_resume(s, 1.);
+            strand_destroy(s);
+        }, "Run a strand that exits immediately.");
+}
+
+static void test_too_small_stack(void)
+{
+    void fn_a(void *self) {
+        int space[20];
+        space[19] = 42;
+        fprintf(stderr, "space[19] == %d\n", space[19]);
+    };
+    dies_ok({
+            strand a = strand_spawn_0(fn_a, 10);
+        }, "Not enough space to begin with");
+    void fn_b(void *self) {
+        strand_yield(self);
+        fn_b(self);
+    };
+    dies_ok({
+            strand s = strand_spawn_0(fn_b, STRAND_DEFAULT_STACK_SIZE);
+            while (strand_is_alive(s))
+                strand_resume(s, 1.);
+            strand_destroy(s);
+        }, "Recursive function exhausts stack space");
+}
+
 int main(void)
 {
-    plan(1);
-    todo();
-    pass();
-    end_todo;
+    long seed = time(NULL);
+    note("srand48(%ld)\n", seed);
+    srand48(seed);
+    plan(9);
+    test_basic_usage();
+    test_too_small_stack();
     done_testing();
 }
 #endif
