@@ -45,6 +45,7 @@ bool test_video_compare_fb_with_file(const char *path)
 {
     png_t png;
     if (PNG_NO_ERROR != png_open_file_read(&png, path)) {
+        fail("Screenshot (%s) could not be loaded", path);
         save_differing_screenshot(path);
         return false;
     }
@@ -63,7 +64,7 @@ bool test_video_compare_fb_with_file(const char *path)
     ENSURE(pels);
     ENSURE(PNG_NO_ERROR == png_get_data(&png, pels));
     bool result = cmp_mem(framebuf, pels, n*bpp,
-                          "Saved screenshot matches framebuffer");
+                          "Saved screenshot (%s) matches framebuffer", path);
     free(pels);
     png_close_file(&png);
 
