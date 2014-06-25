@@ -1,4 +1,4 @@
-.PHONY: clean all test check check-syntax coverage
+.PHONY: clean all test check check-syntax coverage_clean
 
 CONFIGURATION	?= DEBUG
 CC		?= gcc
@@ -51,7 +51,7 @@ vendor/glew/lib/libGLEW.a:
 	$(MAKE) -C vendor/glew SYSTEM=linux-osmesa extensions all
 
 TESTS       := t/actor.t t/alloc_bitmap.t t/camera.t t/easing.t t/input.t t/layer.t t/physics.t t/shader.t t/sprite.t t/strand.t t/text.t t/texture.t t/tilemap.t
-CFLAGS_TEST  = -fprofile-arcs -ftest-coverage -fstack-usage -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -DDEBUG -DTESTING
+CFLAGS_TEST  = -fprofile-arcs -ftest-coverage --coverage -fstack-usage -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -DDEBUG -DTESTING
 LDFLAGS_TEST = -Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa -lgcov
 
 $(TESTS): | vendor/libtap/libtap.a vendor/glew/lib/libGLEW.a t/
@@ -76,7 +76,12 @@ test: check check-syntax
 check: $(TESTS)
 	MESA_DEBUG=1 prove
 
-coverage: check
+coverage_clean:
+	$(RM) -r coverage-report
+	lcov --directory . --zerocounters
+	lcov --capture --initial --directory . --output-file coverage.info
+
+coverage: coverage_clean check
 	lcov --capture --directory . --output-file coverage.info
 	genhtml coverage.info --output-directory coverage-report
 
