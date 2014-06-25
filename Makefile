@@ -1,4 +1,4 @@
-.PHONY: clean all test check check-syntax
+.PHONY: clean all test check check-syntax coverage
 
 CONFIGURATION	?= DEBUG
 CC		?= gcc
@@ -75,6 +75,10 @@ test: check check-syntax
 
 check: $(TESTS)
 	MESA_DEBUG=1 prove
+
+coverage: check
+	lcov --capture --directory . --output-file coverage.info
+	genhtml coverage.info --output-directory coverage-report
 
 # XXX use scan-build make instead?
 check-syntax: $(SRC)
