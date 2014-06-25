@@ -142,12 +142,37 @@ struct alloc_bitmap_iterator alloc_bitmap_iterate(alloc_bitmap bitmap)
 #ifdef UNIT_TEST_ALLOC_BITMAP
 #include "libtap/tap.h"
 
+static void create_iterate_remove(size_t n)
+{
+    note("%s(%d)", __func__, n);
+    alloc_bitmap bm = alloc_bitmap_init(n, sizeof (size_t));
+    for (size_t i = 0; i < n; ++i) {
+        size_t *p = alloc_bitmap_alloc_first_free(bm);
+        *p = i;
+    }
+    struct alloc_bitmap_iterator it = alloc_bitmap_iterate(bm);
+    for (size_t i = 0; i < n; ++i) {
+        size_t *p = it.next(&it);
+        ok(NULL != p);
+        cmp_ok(*p, "==", i, "iteration should be incremental");
+        if (*p % 2) it.mark_for_removal(&it);
+    }
+    it.expunge_marked(&it);
+
+    it = alloc_bitmap_iterate(bm);
+    for (size_t i = 0; i < n; i += 2) {
+        size_t *p = it.next(&it);
+        ok(NULL != p);
+        cmp_ok(*p, "==", i, "we should have removed every second one");
+    }
+
+    alloc_bitmap_destroy(bm);
+}
+
 int main(void)
 {
     plan(1);
-    todo();
-    pass();
-    end_todo;
+    create_iterate_remove(1000);
     done_testing();
 }
 #endif
