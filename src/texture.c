@@ -69,7 +69,7 @@ bool texture_from_png(struct texture *t, const char *path)
     int outcome = png_open_file(&png, path);
     if (PNG_NO_ERROR != outcome) {
         LOG_ERROR("png_open_file(%s): %d", path, outcome);
-        ABORT("failed to open PNG");
+        return false;
     }
     uint8_t *pels;
     pels = malloc(png.width*png.height*png.bpp);
@@ -103,12 +103,45 @@ void texture_destroy(struct texture *t)
 
 #ifdef UNIT_TEST_TEXTURE
 #include "libtap/tap.h"
+#include "video.h"
+
+static void basic_check_texture(const char *path, int w, int h)
+{
+    struct texture t;
+    note("checking %s", path);
+    if (!ok(texture_from_png(&t, path))) return;
+    cmp_ok(t.width, "==", w);
+    cmp_ok(t.height, "==", h);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, t.id);
+    GLint i = 0;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &i);
+    cmp_ok(i, "==", t.width);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &i);
+    cmp_ok(i, "==", t.height);
+    texture_destroy(&t);
+}
+
+static void test_png_loading(void)
+{
+    struct texture t;
+    ok(!texture_from_png(&t, "t/texture.t.from-png.non-existent.png"));
+
+    basic_check_texture("t/texture.t.from-png.rgba.png", 64, 32);
+    basic_check_texture("t/texture.t.from-png.rgb.png", 64, 32);
+    todo();
+    basic_check_texture("t/texture.t.from-png.indexed.png", 64, 32);
+    end_todo;
+    basic_check_texture("t/texture.t.from-png.npot.png", 65, 48);
+}
 
 int main(void)
 {
-    plan(4);
+    video_init();
+    texture_init();
+    plan(20);
+    test_png_loading();
     todo();
-    pass("test reading PNGs");
     pass("test reading from raw data");
     pass("test texture cache");
     pass("test destroying textures");

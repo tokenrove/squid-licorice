@@ -68,7 +68,7 @@ t/shader.t: src/shader.c src/log.c src/test_video.c src/gl.c
 t/sprite.t: src/sprite.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 t/strand.t: src/strand.c
 t/text.t: src/text.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
-t/texture.t: src/texture.c src/log.c
+t/texture.t: src/texture.c src/log.c src/test_video.c src/gl.c
 t/tilemap.t: src/tilemap.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 
 test: check check-syntax
