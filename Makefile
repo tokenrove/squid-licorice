@@ -17,7 +17,7 @@ LDFLAGS_RELEASE :=-fwhole-program
 LDFLAGS_LIBS	:=`pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
 LDFLAGS		 = $(LDFLAGS_LIBS) $(LDFLAGS_$(CONFIGURATION))
 VPATH		:= src
-ENGINE_SRC	:= timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c
+ENGINE_SRC	:= timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c utf8.c
 GAME_SRC	:= layer.c actor.c physics.c stage.c level.c game.c osd.c main.c
 SRC		:= $(ENGINE_SRC) $(GAME_SRC)
 OBJECTS		:= $(addprefix obj/, $(SRC:.c=.o))
@@ -50,7 +50,7 @@ vendor/libtap/libtap.a:
 vendor/glew/lib/libGLEW.a:
 	$(MAKE) -C vendor/glew SYSTEM=linux-osmesa extensions all
 
-TESTS       := t/actor.t t/alloc_bitmap.t t/camera.t t/easing.t t/input.t t/layer.t t/physics.t t/shader.t t/sprite.t t/strand.t t/text.t t/texture.t t/tilemap.t
+TESTS       := t/actor.t t/alloc_bitmap.t t/camera.t t/easing.t t/input.t t/layer.t t/physics.t t/shader.t t/sprite.t t/strand.t t/text.t t/texture.t t/tilemap.t t/utf8.t
 CFLAGS_TEST  = -fprofile-arcs -ftest-coverage -fstack-usage -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -DDEBUG -DTESTING
 LDFLAGS_TEST = -Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa -lgcov
 
@@ -67,9 +67,10 @@ t/physics.t: src/physics.c src/alloc_bitmap.c src/log.c
 t/shader.t: src/shader.c src/log.c src/test_video.c src/gl.c
 t/sprite.t: src/sprite.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 t/strand.t: src/strand.c
-t/text.t: src/text.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
+t/text.t: src/text.c src/utf8.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 t/texture.t: src/texture.c src/log.c src/test_video.c src/gl.c
 t/tilemap.t: src/tilemap.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
+t/utf8.t: src/utf8.c src/log.c
 
 test: check check-syntax
 
