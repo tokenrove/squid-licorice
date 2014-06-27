@@ -261,7 +261,7 @@ static void test_font_file_reading(void)
     ok(text_load_font(&font, "t/text.t.0"), "Load a valid font");
     cmp_ok(font.n_glyphs, "==", 94);
     text_destroy_font(&font);
-    dies_ok({text_load_font(&font, "t/text.t.1-missing-png");}, "Font with missing PNG");
+    ok(!text_load_font(&font, "t/text.t.1-missing-png"), "Font with missing PNG");
     ok(!text_load_font(&font, "t/text.t.2-empty"), "Empty file");
     ok(!text_load_font(&font, "t/text.t.3-empty"), "Empty file with blank line");
     ok(!text_load_font(&font, "t/text.t.4-truncated"), "Truncated file");
@@ -400,15 +400,14 @@ static void test_low_level_utf8_decoding(void)
         cmp_ok((intptr_t)s-1, "==", (intptr_t)t, "s (%p) should be one past the beginning (%p)", s, t);
     }
 
-    note("Fuzz testing UTF-8 decoding");
-    {
-        log_quiet();
-        void fn(void *_ __attribute__ ((unused)), const char *s) {
-            while (*s) decode_utf8(&s);
-        };
-        apply_fuzz_test_to(fn, NULL);
-        log_noisy();
-    }
+    lives_ok({
+            log_quiet();
+            void fn(void *_ __attribute__ ((unused)), const char *s) {
+                while (*s) decode_utf8(&s);
+            };
+            apply_fuzz_test_to(fn, NULL);
+            log_noisy();
+        }, "Fuzz testing UTF-8 decoding");
 }
 
 static void test_unusual_utf8_handling(void)
@@ -417,14 +416,10 @@ static void test_unusual_utf8_handling(void)
     ok(text_load_font(&font, "t/text.t.0"));
     video_start_frame();
     position p = 0;
-    note("Testing invalid UTF-8");
-    text_render_line(&font, p, 0x0000ffff, "\xF0\xA4\xAD \xF0\xA4\xAD\xA2 \xF0\xA4\xAD\xA2 \xF0\xA4\xAD\xA2 \xF0\xA4\xAD\xA2 \xF0\xA4\xAD");
-    note("Testing truncated UTF-8");
-    text_render_line(&font, p, 0x0000ffff, "\xF0");
+    lives_ok({text_render_line(&font, p, 0x0000ffff, "\xF0\xA4\xAD \xF0\xA4\xAD\xA2 \xF0\xA4\xAD\xA2 \xF0\xA4\xAD\xA2 \xF0\xA4\xAD\xA2 \xF0\xA4\xAD");}, "Testing invalid UTF-8");
+    lives_ok({text_render_line(&font, p, 0x0000ffff, "\xF0");}, "Testing truncated UTF-8");
 
-    // fuzz test for a while
-    note("Fuzz testing");
-    {
+    lives_ok({
         log_quiet();
         void fn(void *_ __attribute__ ((unused)), const char *s) {
             text_render_line(&font, p, rand(), s);
@@ -432,7 +427,8 @@ static void test_unusual_utf8_handling(void)
         };
         apply_fuzz_test_to(fn, NULL);
         log_noisy();
-    }
+        }, "Fuzz testing");
+
     video_end_frame();
     text_destroy_font(&font);
 }
@@ -442,7 +438,7 @@ int main(void)
     video_init();
     camera_init();
     text_init();
-    plan(105);
+    plan(109);
     long seed = time(NULL);
     srand(seed);
     note("Random seed: %d", seed);
