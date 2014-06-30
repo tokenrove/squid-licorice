@@ -147,6 +147,7 @@ struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
     ENSURE(type < ARCHETYPE_LAST);
     struct archetype *arch = &archetypes[type];
     struct actor *a = (struct actor *)alloc_bitmap_alloc_first_free(actors);
+    if (NULL == a) return NULL;
     *a = (struct actor){
         .handler = arch->initial_handler,
         .state = state
