@@ -163,13 +163,40 @@ struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
 
 #ifdef UNIT_TEST_ACTOR
 #include "libtap/tap.h"
+#include "video.h"
+#include "camera.h"
+#include "physics.h"
+
+static void test_actors_basic_api()
+{
+    int n = 32;
+    bodies_init(n);
+    actors_init(n);
+    /* draw no one */
+    actors_draw();
+    actors_update(1.);
+    struct actor *a = actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL);
+    for (int i = 1; i < n; ++i)
+        ok(NULL != actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL));
+    ok(NULL == actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL));
+    actors_draw();
+    actors_update(1.);
+    struct tick_event tick = { .super = { .signal = SIGNAL_TICK },
+                               .elapsed_time = 1. };
+    ok(actor_signal(a, (struct event *)&tick));
+    actors_draw();
+    actors_update(1.);
+    actors_destroy();
+    bodies_destroy();
+}
 
 int main(void)
 {
+    video_init();
+    camera_init();
+    sprite_init();
     plan(1);
-    todo();
-    pass();
-    end_todo;
+    test_actors_basic_api();
     done_testing();
 }
 #endif
