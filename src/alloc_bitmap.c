@@ -105,10 +105,7 @@ bool alloc_bitmap_remove(alloc_bitmap t_, void *m)
 static void *it_next(struct alloc_bitmap_iterator *me)
 {
     struct t *t = me->t;
-    if (me->j == LIMB_SIZE) {
-        ++me->i; me->j = 0;
-    }
-    ENSURE(me->i < t->count && me->j < LIMB_SIZE);
+    if (me->j == LIMB_SIZE) { ++me->i; me->j = 0; }
     for (; me->i < t->count && me->n < t->actual; ++me->i, me->j = 0) {
         limb x = t->bits[me->i] >> me->j;
         if (0 == x) continue;
@@ -195,13 +192,29 @@ static void test_tiny_bitmap(void)
     alloc_bitmap_destroy(bm);
 }
 
+static void test_3270f2291199b735e46d6d00d1e905d1531e7f21(void)
+{
+    note("Regression test for bug revealed by commit 3270f2291199b735e46d6d00d1e905d1531e7f21");
+    int n = LIMB_SIZE;
+    alloc_bitmap bm = alloc_bitmap_init(n, sizeof(intptr_t));
+    while (alloc_bitmap_alloc_first_free(bm));
+    ok(NULL == alloc_bitmap_alloc_first_free(bm), "Definitely full.");
+    struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bm);
+    int i = 0;
+    while (iter.next(&iter)) ++i;
+    cmp_ok(i, "==", n, "Got as many items as we expected");
+    ok(NULL == iter.next(&iter), "Iterator is definitely done.");
+    alloc_bitmap_destroy(bm);
+}
+
 int main(void)
 {
-    plan(5);
+    plan(8);
     lives_ok({test_create_iterate_remove(1000);});
     dies_ok({alloc_bitmap_init(1000, 0);}, "member size can't be 0");
     lives_ok({test_tiny_bitmap();}, "tiny bitmap");
     lives_ok({test_overflow();}, "Test overflow");
+    test_3270f2291199b735e46d6d00d1e905d1531e7f21();
     done_testing();
 }
 #endif
