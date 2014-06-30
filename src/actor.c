@@ -155,6 +155,7 @@ struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
     a->sprite = (struct sprite) { .x = 0, .y = 0, .scaling = 1.f, .rotation = 0. };
     // XXX will go in a dedicated atlas cache somewhere instead
     ENSURE(a->sprite.atlas = calloc(1, sizeof (struct texture)));
+    // XXX should use a placeholder if texture fails to load
     ENSURE(texture_from_png(a->sprite.atlas, arch->atlas_path));
     a->sprite.w = a->sprite.atlas->width;
     a->sprite.h = a->sprite.atlas->height;
@@ -170,23 +171,30 @@ struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
 
 static void test_actors_basic_api()
 {
+    note("Test basic API on actors for ordinary, successful cases");
     int n = 32;
     bodies_init(n);
     actors_init(n);
     /* draw no one */
     actors_draw();
     actors_update(1.);
+
     struct actor *a = actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL);
     for (int i = 1; i < n; ++i)
         ok(NULL != actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL));
+    // See what happens at the limits.  n should be a power of 2.
     ok(NULL == actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL));
+
     actors_draw();
     actors_update(1.);
+
     struct tick_event tick = { .super = { .signal = SIGNAL_TICK },
                                .elapsed_time = 1. };
     ok(actor_signal(a, (struct event *)&tick));
+
     actors_draw();
     actors_update(1.);
+
     actors_destroy();
     bodies_destroy();
 }
@@ -196,8 +204,10 @@ int main(void)
     video_init();
     camera_init();
     sprite_init();
-    plan(1);
+    plan(33);
     test_actors_basic_api();
+    // TODO verify a placeholder sprite is used if texture fails to load
+    // TODO verify a placeholder actor is used if archetype doesn't exist
     done_testing();
 }
 #endif

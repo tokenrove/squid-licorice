@@ -209,8 +209,10 @@ static void test_3270f2291199b735e46d6d00d1e905d1531e7f21(void)
 
 int main(void)
 {
-    plan(8);
-    lives_ok({test_create_iterate_remove(1000);});
+    plan(9);
+    lives_ok({test_create_iterate_remove(1000);}, "regular bitmap");
+    // TODO: should improve the speed of these routines so a 1M bitmap can be tested
+    lives_ok({test_create_iterate_remove(24*1024);}, "larger bitmap");
     dies_ok({alloc_bitmap_init(1000, 0);}, "member size can't be 0");
     lives_ok({test_tiny_bitmap();}, "tiny bitmap");
     lives_ok({test_overflow();}, "Test overflow");
