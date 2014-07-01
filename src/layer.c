@@ -102,12 +102,37 @@ void layer_draw(struct layer *t)
 #ifdef UNIT_TEST_LAYER
 #include "libtap/tap.h"
 
+static void test_layer_with_one_slice(void)
+{
+    struct tilemap slice;
+    bool fn_was_called = false;
+    struct tilemap *fn(void *_ __attribute__ ((unused))) {
+        fn_was_called = true;
+        return &slice;
+    }
+
+    ENSURE(tilemap_load("t/layer.t-0.0.map", "t/layer.t-0.0.png", &slice));
+
+    struct layer *layer = layer_new(SCROLL_UP, fn, NULL);
+    ok(NULL != layer);
+    ok(!fn_was_called);
+    for (int i = 0; i < 3; ++i) {
+        layer_update(layer, 1.);
+        video_start_frame();
+        layer_draw(layer);
+        video_end_frame();
+    }
+    ok(fn_was_called);
+    layer_destroy(layer);
+}
+
 int main(void)
 {
-    plan(1);
-    todo();
-    pass();
-    end_todo;
+    video_init();
+    camera_init();
+    tilemap_init();
+    plan(3);
+    test_layer_with_one_slice();
     done_testing();
 }
 #endif
