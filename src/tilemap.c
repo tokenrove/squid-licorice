@@ -123,13 +123,32 @@ void tilemap_destroy(struct tilemap *t)
 
 #ifdef UNIT_TEST_TILEMAP
 #include "libtap/tap.h"
+#include "video.h"
+#include "camera.h"
+#include "test_video.h"
+
+static void test_basic_output(void)
+{
+    struct tilemap tilemap;
+    note("Testing basic shader output");
+    ok(tilemap_load("t/tilemap.t-0.map", "t/tilemap.t-0.png", &tilemap));
+    video_start_frame();
+    position p = I*64;
+    tilemap_draw(&tilemap, p);
+    video_end_frame();
+    ok(test_video_compare_fb_with_file("t/tilemap.t-0.640x480.png"));
+    tilemap_destroy(&tilemap);
+}
 
 int main(void)
 {
-    plan(2);
+    video_init();
+    camera_init();
+    tilemap_init();
+    plan(4);
+    test_basic_output();
     todo();
-    pass("test file reading");
-    pass("test shader output");
+    note("exercise file reading");
     end_todo;
     done_testing();
 }
