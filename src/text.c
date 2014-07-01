@@ -271,10 +271,7 @@ static void test_shader_output(void)
     position center = viewport_w/2  + (viewport_h/2)*I;
     text_render_line(&font, center, 0xff000080, "This is a positioned line of text");
     video_end_frame();
-    if (!test_video_compare_fb_with_file("t/text.t.shader-0.640x480.png")) {
-        note("Differing output saved to t/text.t.shader-0.640x480-diff.png");
-        video_save_fb_screenshot("t/text.t.shader-0.640x480-diff.png");
-    }
+    ok(test_video_compare_fb_with_file("t/text.t.shader-0.640x480.png"));
     text_destroy_font(&font);
 }
 
@@ -303,7 +300,7 @@ static void test_ordinary_utf8_handling(void)
     text_render_line(&font, p, 0x0000ffff, "These characters are missing: \u2603 and \u2601");
     p += I*text_get_line_height(&font);
     video_end_frame();
-    test_video_compare_fb_with_file("t/text.t.utf8-0.640x480.png");
+    ok(test_video_compare_fb_with_file("t/text.t.utf8-0.640x480.png"));
     text_destroy_font(&font);
 }
 
@@ -346,7 +343,7 @@ int main(void)
     video_init();
     camera_init();
     text_init();
-    plan(27);
+    plan(29);
     long seed = time(NULL);
     srand(seed);
     note("Random seed: %d", seed);
