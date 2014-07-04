@@ -6,10 +6,9 @@
 #include "strand.h"
 #include "input.h"
 #include "game.h"
+#include "inline_math.h"
 
 double average_frame_time;
-
-static inline float max(const float a, const float b) { return a < b ? b : a; }
 
 static float update_frame_timer(void)
 {
@@ -30,7 +29,7 @@ static float update_frame_timer(void)
      * machine (or logic error somewhere), which could cause numerical
      * instability elsewhere. */
     if (elapsed_time < target_frame_time/4.f) {
-        timer_sleep_ms(target_frame_time - max(0., elapsed_time));
+        timer_sleep_ms(target_frame_time - maxf(0., elapsed_time));
         elapsed_time = target_frame_time;
     }
     return elapsed_time;
