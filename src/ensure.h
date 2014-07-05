@@ -17,6 +17,6 @@ static inline void verbose_abort(const char *fl, const char *fn, const char *s, 
 #define STRINGIFY(x) STRINGIFY_PRIME(x)
 #define ABORT(x) do { verbose_abort(__FILE__ ":" STRINGIFY(__LINE__) ": ", __func__, ": failed assertion: " x, NULL); } while (0)
 #define ABORT_S(x,y) do { verbose_abort(__FILE__ ":" STRINGIFY(__LINE__) ": ", __func__, ": failed assertion: " x, y); } while (0)
-#define ENSURE(x) do { errno = 0; if (!(x)) { if (errno) perror(__func__); ABORT(STRINGIFY(x)); } } while (0)
+#define ENSURE(x) do { if (!(x)) { ABORT(STRINGIFY(x)); } } while (0)
 #define ENSURE_0(x) ENSURE(0 == (x))
 #define ENSURE_NOT(v,x) ENSURE((v) != (x))
