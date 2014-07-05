@@ -6,27 +6,16 @@
 #include "inline_math.h"
 
 static alloc_bitmap bodies;
-static size_t queue_max;
-static struct body_event *queue;
-static size_t queue_p;
-
-static inline size_t maxu(size_t a, size_t b) { return (a > b) ? a : b; }
 
 void bodies_init(size_t n)
 {
     ENSURE(bodies = alloc_bitmap_init(n, sizeof (struct body)));
-    queue_max = maxu(32, 1+n);
-    ENSURE(queue = calloc(queue_max, sizeof (struct body_event)));
-    queue_p = 0;
 }
 
 void bodies_destroy(void)
 {
     alloc_bitmap_destroy(bodies);
     bodies = NULL;
-    free(queue);
-    queue = NULL;
-    queue_p = 0;
 }
 
 struct body *body_new(position p, float collision_radius, float mass)
@@ -41,7 +30,7 @@ struct body *body_new(position p, float collision_radius, float mass)
 void body_destroy(struct body *body)
 {
     alloc_bitmap_remove(bodies, body);
-    // XXX remove references to this in the queue?  write a test
+    // XXX remove references to this in the batch?  write a test
 }
 
 static void body_update(struct body *body, float dt)
@@ -57,22 +46,6 @@ static void body_update(struct body *body, float dt)
     body->v -= friction * body->v;  /* Stokes' drag */
 }
 
-static void push(struct body_event ev)
-{
-    queue[queue_p] = ev;
-    ++queue_p;
-    ENSURE(queue_p < queue_max);
-}
-
-static void push_collision_event(struct body *a, struct body *b)
-{
-    struct body_event ev = (struct body_event){0};
-    ev.type = BODY_COLLISION;
-    ev.a = a;
-    ev.b = b;
-    push(ev);
-}
-
 /* TODO:
  * - more shapes;
  * - restitution information
@@ -82,20 +55,12 @@ static void check_collisions_against(struct body *a, float dt)
     struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bodies);
     struct body *b;
     while((b = iter.next(&iter))) {
-        if (a == b) continue;
+        if (a == b || NULL == a->collision_fn) continue;
         double d = cabsf(a->p - b->p);
         double r = maxf(a->collision_radius, b->collision_radius);
         if (d*d < r*r)
-            push_collision_event(a, b);
+            (*a->collision_fn)(a, b, a->data);
     }
-}
-
-static void push_offside_event(struct body *offender)
-{
-    struct body_event ev = (struct body_event){0};
-    ev.type = BODY_OFFSIDE;
-    ev.a = offender;
-    push(ev);
 }
 
 static void apply_offside_rule(struct body *b)
@@ -104,7 +69,8 @@ static void apply_offside_rule(struct body *b)
         crealf(b->p) > viewport_w + b->collision_radius/2 ||
         cimagf(b->p) < -b->collision_radius/2 ||
         cimagf(b->p) > viewport_h + b->collision_radius/2)
-        push_offside_event(b);
+        if (b->collision_fn)
+            (*b->collision_fn)(b, NULL, b->data);
 }
 
 static void check_collisions(float dt)
@@ -119,21 +85,12 @@ static void check_collisions(float dt)
 
 void bodies_update(float dt)
 {
-    queue_p = 0;
-
     struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bodies);
     struct body *b;
     while((b = iter.next(&iter)))
         body_update(b, dt);
 
     check_collisions(dt);
-}
-
-struct body_event *bodies_poll(void)
-{
-    if (queue_p > 0)
-        return &queue[--queue_p];
-    return NULL;
 }
 
 #ifdef UNIT_TEST_PHYSICS
@@ -169,25 +126,26 @@ static void simple_test(unsigned n_bodies, unsigned n_iterations)
 
 static void test_simple_collision_occurs(void)
 {
-    bodies_init(2);
     struct body *a, *b;
+    void fn(struct body *us, struct body *them, void *data) {
+        ok(us == a);
+        ok(them == b);
+        *(bool *)data = true;
+    }
+    bodies_init(2);
+    bool a_collided = false;
     a = body_new(0., 10., 1.);
     ok(NULL != a);
+    a->data = &a_collided;
+    a->collision_fn = fn;
     b = body_new(15., 10., 1.);
     ok(NULL != b);
     bodies_update(1.);
-    ok(NULL == bodies_poll());
+    cmp_ok(a_collided, "==", false);
     for (int i = 5; i > 0; --i) {
         b->impulses = -1.;
         bodies_update(1.);
-        struct body_event *ev;
-        while ((ev = bodies_poll())) {
-            cmp_ok(ev->type, "==", BODY_COLLISION);
-            if (ev->a == a)     ok(ev->b == b);
-            else if(ev->a == b) ok(ev->b == a);
-            else                fail("Arguments of event don't match bodies we have.");
-            goto end;
-        }
+        if (a_collided) goto end;
     }
     fail("Bodies didn't collide when they should have.");
     DUMP_BODY(a);
@@ -196,23 +154,64 @@ end:
     bodies_destroy();
 }
 
-static void test_specific_collision_regression(void)
+static void test_specific_collision_regression_1(void)
 {
+    bool was_called = false;
+    struct body *a, *b;
+    void fn(struct body *us, struct body *them, void *data) {
+        fail("collision handler incorrectly called; parameters %p, %p, %p", us, them, data);
+        *(bool *)data = true;
+    }
     bodies_init(2);
-    body_new(0.135395 + I*0.587962, 0.000003, 1.);
-    body_new(0.098993 + I*0.551578, 0.000005, 1.);
+    a = body_new(0.135395 + I*0.587962, 0.000003, 1.);
+    a->collision_fn = fn;
+    a->data = &was_called;
+    b = body_new(0.098993 + I*0.551578, 0.000005, 1.);
+    b->collision_fn = fn;
+    b->data = &was_called;
     bodies_update(1.);
-    ok(NULL == bodies_poll());
+    ok(!was_called);
+    bodies_destroy();
+}
+
+static void test_specific_collision_regression_2(void)
+{
+    bool was_called_ab = false, was_called_ba = false;
+    struct body *a, *b;
+    void fn(struct body *us, struct body *them, void *data) {
+        bool *p = data;
+
+        if (us == a) {
+            ok(them == b);
+            ok(p == &was_called_ab);
+        } else if (us == b) {
+            ok(them == a);
+            ok(p == &was_called_ba);
+        } else
+            fail("collision handler incorrectly called with parameters %p, %p, %p", us, them, data);
+        *p = true;
+    }
+    bodies_init(2);
+    a = body_new(0.135395 + I*0.587962, 0.1, 1.);
+    a->collision_fn = fn;
+    a->data = &was_called_ab;
+    b = body_new(0.098993 + I*0.551578, 0.1, 1.);
+    b->collision_fn = fn;
+    b->data = &was_called_ba;
+    bodies_update(1.);
+    ok(was_called_ab);
+    ok(was_called_ba);
     bodies_destroy();
 }
 
 int main(void)
 {
-    plan(7);
+    plan(13);
     long seed = time(NULL);
     note("srand48(%ld)\n", seed);
     srand48(seed);
-    test_specific_collision_regression();
+    test_specific_collision_regression_1();
+    test_specific_collision_regression_2();
     test_simple_collision_occurs();
     lives_ok({simple_test(1000, 100);});
     done_testing();
