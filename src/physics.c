@@ -33,6 +33,13 @@ void body_destroy(struct body *body)
     // XXX remove references to this in the batch?  write a test
 }
 
+static inline float distance_squared(position a, position b)
+{
+    float x = crealf(a) - crealf(b),
+          y = cimagf(a) - cimagf(b);
+    return (x*x) + (y*y);
+}
+
 static void body_update(struct body *body, float dt)
 {
     const float friction = 0.08f;
@@ -56,9 +63,9 @@ static void check_collisions_against(struct body *a, float dt)
     struct body *b;
     while((b = iter.next(&iter))) {
         if (a == b || NULL == a->collision_fn) continue;
-        double d = cabsf(a->p - b->p);
-        double r = maxf(a->collision_radius, b->collision_radius);
-        if (d*d < r*r)
+        float d = distance_squared(a->p, b->p);
+        float r = maxf(a->collision_radius, b->collision_radius);
+        if (d < r*r)
             (*a->collision_fn)(a, b, a->data);
     }
 }
