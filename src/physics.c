@@ -66,12 +66,12 @@ static void check_collisions_against(struct body *us)
         if (us == them || them->flags & COLLIDES_NEVER) continue;
         float d = distance_squared(us->p, them->p);
         float r = maxf(us->collision_radius, them->collision_radius);
-        if (d < r*r)
+        if ((d < r*r) != ((us->flags & COLLIDES_INVERSE) || (them->flags & COLLIDES_INVERSE)))
             (*us->collision_fn)(us, them, us->data);
     }
 }
 
-static void check_collisions(float dt)
+static void check_collisions(void)
 {
     struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bodies);
     struct body *b;
@@ -89,7 +89,7 @@ void bodies_update(float dt)
     while((b = iter.next(&iter)))
         body_update(b, dt);
 
-    check_collisions(dt);
+    check_collisions();
 }
 
 #ifdef UNIT_TEST_PHYSICS
@@ -223,25 +223,24 @@ static void test_collides_never(void)
     ok(!did_collide);
 }
 
-static void test_collision_flags(void)
-{
-    test_collides_never();
-    // by affiliation
-    // inverse
-}
 
 static void test_offside(void)
 {
     bool offside = false;
-    void fn(struct body *us, struct body *them, void *data __attribute__((unused))) {
+    void fn(struct body *us __attribute__((unused)),
+            struct body *them __attribute__((unused)),
+            void *data __attribute__((unused))) {
         offside = true;
     }
     bodies_init(2);
-    struct body *a = body_new(viewport_w/2. + I*(viewport_h/2.),
-                              sqrtf(powf(viewport_w/2, 2)+powf(viewport_h/2,2)));
+    // Diagonal length plus a fuzz factor
+    float radius = 10. + sqrtf(powf(viewport_w/2, 2)+powf(viewport_h/2,2));
+    struct body *a = body_new(viewport_w/2. + I*(viewport_h/2.), radius);
     a->flags |= COLLIDES_INVERSE;
     a->collision_fn = fn;
     struct body *b = body_new(0., 10.);
+    bodies_update(1.);
+    ok(!offside);
     int i = 0;
     while (!offside && i < 40) {
         b->impulses = -5.;
@@ -252,9 +251,38 @@ static void test_offside(void)
     cmp_ok(i, "==", 3);
 }
 
+static void test_affiliation(void)
+{
+    bool did_collide = false;
+    void fn(struct body *us __attribute__((unused)),
+            struct body *them __attribute__((unused)),
+            void *data __attribute__((unused))) {
+        did_collide = true;
+    }
+    bodies_init(2);
+    body_new(0., 1.);
+    struct body *b = body_new(0., 1.);
+    b->flags |= COLLIDES_BY_AFFILIATION;
+    b->collision_fn = fn;
+    b->affiliation = 1;
+    bodies_update(1.);
+    ok(!did_collide);
+    b->affiliation = 0;
+    bodies_update(1.);
+    ok(did_collide);
+    bodies_destroy();
+}
+
+static void test_collision_flags(void)
+{
+    test_collides_never();
+    test_affiliation();
+    test_offside();
+}
+
 int main(void)
 {
-    plan(13);
+    plan(18);
     long seed = time(NULL);
     note("srand48(%ld)\n", seed);
     srand48(seed);
@@ -262,7 +290,6 @@ int main(void)
     test_specific_collision_regression_2();
     test_simple_collision_occurs();
     test_collision_flags();
-    test_offside();
     lives_ok({simple_test(1000, 100);});
     done_testing();
 }
