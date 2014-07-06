@@ -12,7 +12,7 @@ enum collision_flags {
 
 struct body {
     position p, v, F, impulses;
-    void (*collision_fn)(struct body *us, struct body *them, void *data);
+    void (*collision_fn)(struct body *us, struct body *them);
     void *data;
     float collision_radius, mass;
     uint8_t affiliation;

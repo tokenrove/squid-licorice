@@ -70,7 +70,7 @@ static void check_collisions_against(struct body *us)
         float d = distance_squared(us->p, them->p);
         float r = maxf(us->collision_radius, them->collision_radius);
         if ((d < r*r) != ((us->flags & COLLIDES_INVERSE) || (them->flags & COLLIDES_INVERSE)))
-            (*us->collision_fn)(us, them, us->data);
+            (*us->collision_fn)(us, them);
     }
 }
 
@@ -129,10 +129,10 @@ static void simple_test(unsigned n_bodies, unsigned n_iterations)
 static void test_simple_collision_occurs(void)
 {
     struct body *a, *b;
-    void fn(struct body *us, struct body *them, void *data) {
+    void fn(struct body *us, struct body *them) {
         ok(us == a);
         ok(them == b);
-        *(bool *)data = true;
+        *(bool *)us->data = true;
     }
     bodies_init(2);
     bool a_collided = false;
@@ -160,9 +160,9 @@ static void test_specific_collision_regression_1(void)
 {
     bool was_called = false;
     struct body *a, *b;
-    void fn(struct body *us, struct body *them, void *data) {
-        fail("collision handler incorrectly called; parameters %p, %p, %p", us, them, data);
-        *(bool *)data = true;
+    void fn(struct body *us, struct body *them) {
+        fail("collision handler incorrectly called; parameters %p, %p", us, them);
+        *(bool *)us->data = true;
     }
     bodies_init(2);
     a = body_new(0.135395 + I*0.587962, 0.000003);
@@ -180,8 +180,8 @@ static void test_specific_collision_regression_2(void)
 {
     bool was_called_ab = false, was_called_ba = false;
     struct body *a, *b;
-    void fn(struct body *us, struct body *them, void *data) {
-        bool *p = data;
+    void fn(struct body *us, struct body *them) {
+        bool *p = us->data;
 
         if (us == a) {
             ok(them == b);
@@ -190,7 +190,7 @@ static void test_specific_collision_regression_2(void)
             ok(them == a);
             ok(p == &was_called_ba);
         } else
-            fail("collision handler incorrectly called with parameters %p, %p, %p", us, them, data);
+            fail("collision handler incorrectly called with parameters %p, %p, %p", us, them);
         *p = true;
     }
     bodies_init(2);
@@ -210,8 +210,7 @@ static void test_collides_never(void)
 {
     bool did_collide = false;
     void fn(struct body *us __attribute__((unused)),
-            struct body *them __attribute__((unused)),
-            void *data __attribute__((unused))) {
+            struct body *them __attribute__((unused))) {
         did_collide = true;
     }
     bodies_init(2);
@@ -231,8 +230,7 @@ static void test_offside(void)
 {
     bool offside = false;
     void fn(struct body *us __attribute__((unused)),
-            struct body *them __attribute__((unused)),
-            void *data __attribute__((unused))) {
+            struct body *them __attribute__((unused))) {
         offside = true;
     }
     bodies_init(2);
@@ -258,8 +256,7 @@ static void test_affiliation(void)
 {
     bool did_collide = false;
     void fn(struct body *us __attribute__((unused)),
-            struct body *them __attribute__((unused)),
-            void *data __attribute__((unused))) {
+            struct body *them __attribute__((unused))) {
         did_collide = true;
     }
     bodies_init(2);
