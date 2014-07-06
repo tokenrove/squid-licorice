@@ -202,6 +202,7 @@ static void test_too_small_stack(void)
     void fn_b(strand self) {
         strand_yield(self);
         fn_b(self);
+        strand_yield(self);
     };
     dies_ok({
             strand s = strand_spawn_0(fn_b, STRAND_DEFAULT_STACK_SIZE);

@@ -55,7 +55,7 @@ vendor/glew/lib/libGLEW.a:
 ## Probably, the test itself should be more introspective to figure
 ## these things out.
 TESTS       := t/actor.t t/alloc_bitmap.t t/camera.t t/easing.t t/input.t t/layer.t t/physics.t t/shader.t t/sprite.t t/strand.t t/text.t t/texture.t t/tilemap.t t/utf8.t
-CFLAGS_TEST  = -fprofile-arcs -ftest-coverage -fstack-usage -g -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -DDEBUG -DTESTING
+CFLAGS_TEST  = -O3 -fprofile-arcs -ftest-coverage -fstack-usage -g -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -DDEBUG -DTESTING
 LDFLAGS_TEST = -Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa -lgcov
 
 $(TESTS): | vendor/libtap/libtap.a vendor/glew/lib/libGLEW.a t/
