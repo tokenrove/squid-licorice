@@ -38,8 +38,8 @@ void sprite_draw(struct sprite *s, position p)
 
     p += world_camera.translation;
     glUniform2f(glGetUniformLocation(shader, "u_translation"),
-                crealf(p),
-                cimagf(p));
+                crealf(p) - s->w/2,
+                cimagf(p) - s->h/2);
     glUniform1f(glGetUniformLocation(shader, "u_scaling"),
                 s->scaling);
     glUniform1f(glGetUniformLocation(shader, "u_rotation"),
