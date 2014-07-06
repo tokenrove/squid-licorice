@@ -27,6 +27,9 @@ struct collision_msg {  /* MSG_COLLISION */
 extern void bodies_init(size_t n);
 extern void bodies_destroy(void);
 extern void bodies_update(float dt);
+#ifdef DEBUG
+extern void bodies_foreach(void (*fn)(struct body *));
+#endif
 
 extern struct body *body_new(position p, float collision_radius);
 extern void body_destroy(struct body *body);

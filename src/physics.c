@@ -98,6 +98,15 @@ void bodies_update(float dt)
     check_collisions();
 }
 
+#ifdef DEBUG
+void bodies_foreach(void (*fn)(struct body *))
+{
+    struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bodies);
+    struct body *b;
+    while((b = iter.next(&iter))) (*fn)(b);
+}
+#endif
+
 #ifdef UNIT_TEST_PHYSICS
 #include "libtap/tap.h"
 

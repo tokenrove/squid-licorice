@@ -17,7 +17,7 @@ LDFLAGS_RELEASE :=-fwhole-program
 LDFLAGS_LIBS	:=`pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
 LDFLAGS		 = $(LDFLAGS_LIBS) $(LDFLAGS_$(CONFIGURATION))
 VPATH		:= src
-ENGINE_SRC	:= timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c utf8.c msg.c
+ENGINE_SRC	:= timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c utf8.c msg.c draw.c
 GAME_SRC	:= layer.c actor.c physics.c stage.c level.c game.c osd.c main.c
 SRC		:= $(ENGINE_SRC) $(GAME_SRC)
 OBJECTS		:= $(addprefix obj/, $(SRC:.c=.o))
@@ -29,6 +29,8 @@ all: obj/squid check
 src/tilemap.c: obj/tilemap.vert.i obj/tilemap.frag.i
 src/text.c: obj/text.vert.i obj/text.frag.i
 src/sprite.c: obj/sprite.vert.i obj/sprite.frag.i
+src/draw.c: obj/draw.vert.i obj/draw.frag.i
+src/point_sprite.c: obj/point_sprite.vert.i obj/point_sprite.frag.i
 
 obj/squid: $(OBJECTS) | obj/
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
