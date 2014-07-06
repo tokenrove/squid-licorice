@@ -1,9 +1,14 @@
 
-#include "log.h"
 #include "actor.h"
+#include "log.h"
 #include "ensure.h"
 #include "alloc_bitmap.h"
 #include "input.h"
+
+enum {
+    AFFILIATION_ENEMY,
+    AFFILIATION_PLAYER
+};
 
 #define EV_SUPER(super_) (me->handler = super_, STATE_SUPER)
 
@@ -31,6 +36,7 @@ static enum handler_return player_default(struct actor *me, struct event *e)
 
 static enum handler_return player_initial(struct actor *me, struct event *e __attribute__((__unused__)))
 {
+    me->body->affiliation = AFFILIATION_PLAYER;
     me->sprite.x = 0;
     me->sprite.y = 0;
     me->sprite.w = 29;
@@ -44,6 +50,7 @@ struct enemy_a {
 
 static enum handler_return enemy_a_initial(struct actor *me, struct event *e)
 {
+    me->body->affiliation = AFFILIATION_ENEMY;
     me->sprite.x = 58;
     me->sprite.y = 0;
     me->sprite.w = 26;
@@ -159,7 +166,8 @@ struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
     ENSURE(texture_from_png(a->sprite.atlas, arch->atlas_path));
     a->sprite.w = a->sprite.atlas->width;
     a->sprite.h = a->sprite.atlas->height;
-    ENSURE(a->body = body_new(p, arch->collision_radius, arch->mass));
+    ENSURE(a->body = body_new(p, arch->collision_radius));
+    a->body->mass = arch->mass;
     return a;
 }
 

@@ -15,7 +15,7 @@ struct body {
     void (*collision_fn)(struct body *us, struct body *them, void *data);
     void *data;
     float collision_radius, mass;
-    uint16_t affiliation;
+    uint8_t affiliation;
     enum collision_flags flags;
 };
 

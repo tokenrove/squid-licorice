@@ -64,6 +64,9 @@ static void check_collisions_against(struct body *us)
     struct body *them;
     while((them = iter.next(&iter))) {
         if (us == them || them->flags & COLLIDES_NEVER) continue;
+        if ((us->flags & COLLIDES_BY_AFFILIATION ||
+             them->flags & COLLIDES_BY_AFFILIATION) &&
+            us->affiliation == them->affiliation) continue;
         float d = distance_squared(us->p, them->p);
         float r = maxf(us->collision_radius, them->collision_radius);
         if ((d < r*r) != ((us->flags & COLLIDES_INVERSE) || (them->flags & COLLIDES_INVERSE)))
@@ -264,10 +267,9 @@ static void test_affiliation(void)
     struct body *b = body_new(0., 1.);
     b->flags |= COLLIDES_BY_AFFILIATION;
     b->collision_fn = fn;
-    b->affiliation = 1;
     bodies_update(1.);
     ok(!did_collide);
-    b->affiliation = 0;
+    b->affiliation = 1;
     bodies_update(1.);
     ok(did_collide);
     bodies_destroy();
