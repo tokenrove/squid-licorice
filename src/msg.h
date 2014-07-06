@@ -31,4 +31,3 @@ struct ear {
 };
 
 extern void ear_tell(struct ear *, struct msg *);
-#define TELL(E, M) (ear_tell((struct ear *)(E), (struct msg *)(M)))

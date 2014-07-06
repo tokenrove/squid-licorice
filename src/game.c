@@ -16,6 +16,7 @@
 #include "log.h"
 #include "osd.h"
 #include "msg.h"
+#include "msg_macros.h"
 
 const int INITIAL_N_LIVES = 3;
 
@@ -32,11 +33,9 @@ static enum handler_return handle_border_collision(struct ear *me __attribute__(
 {
     struct msg offside_msg = {.type = MSG_OFFSIDE};
     switch (msg->type) {
-    case MSG_COLLISION: {
-        struct collision_msg *m = (struct collision_msg *)msg;
+    case MSG_COLLISION:
         TELL(((struct collision_msg *)msg)->them->ear, &offside_msg);
         return STATE_HANDLED;
-    }
     default:
         return STATE_IGNORED;
     }

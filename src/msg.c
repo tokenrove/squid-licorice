@@ -1,6 +1,8 @@
-#include "msg.h"
-#include "ensure.h"
 #include <stddef.h>
+
+#include "msg.h"
+#include "msg_macros.h"
+#include "ensure.h"
 
 void ear_tell(struct ear *ear, struct msg *msg)
 {

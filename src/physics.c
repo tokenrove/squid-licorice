@@ -1,10 +1,10 @@
-
 #include "physics.h"
 #include "alloc_bitmap.h"
 #include "ensure.h"
 #include "video.h"
 #include "inline_math.h"
-#include <math.h>
+#include "msg.h"
+#include "msg_macros.h"
 
 static alloc_bitmap bodies;
 
@@ -109,6 +109,7 @@ void bodies_foreach(void (*fn)(struct body *))
 
 #ifdef UNIT_TEST_PHYSICS
 #include "libtap/tap.h"
+#include <math.h>
 
 uint16_t viewport_w = 640, viewport_h = 480;
 
