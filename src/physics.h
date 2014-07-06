@@ -1,8 +1,9 @@
 #pragma once
 
 #include <stdlib.h>
-#include "geometry.h"
 #include <stdint.h>
+#include "geometry.h"
+#include "msg.h"
 
 enum collision_flags {
     COLLIDES_NEVER          = 1, // if set, all collision is bypassed
@@ -12,11 +13,15 @@ enum collision_flags {
 
 struct body {
     position p, v, F, impulses;
-    void (*collision_fn)(struct body *us, struct body *them);
-    void *data;
     float collision_radius, mass;
     uint8_t affiliation;
     enum collision_flags flags;
+    struct ear *ear;
+};
+
+struct collision_msg {  /* MSG_COLLISION */
+    struct msg base;
+    struct body *us, *them;
 };
 
 extern void bodies_init(size_t n);

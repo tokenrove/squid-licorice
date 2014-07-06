@@ -69,8 +69,11 @@ static void check_collisions_against(struct body *us)
             us->affiliation == them->affiliation) continue;
         float d = distance_squared(us->p, them->p);
         float r = maxf(us->collision_radius, them->collision_radius);
-        if ((d < r*r) != ((us->flags & COLLIDES_INVERSE) || (them->flags & COLLIDES_INVERSE)))
-            (*us->collision_fn)(us, them);
+        if ((d < r*r) != ((us->flags & COLLIDES_INVERSE) || (them->flags & COLLIDES_INVERSE))) {
+            struct collision_msg m = { .base.type = MSG_COLLISION,
+                                       .us = us, .them = them };
+            TELL(us->ear, &m);
+        }
     }
 }
 
@@ -79,7 +82,7 @@ static void check_collisions(void)
     struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bodies);
     struct body *b;
     while((b = iter.next(&iter))) {
-        if (b->flags & COLLIDES_NEVER || NULL == b->collision_fn)
+        if (b->flags & COLLIDES_NEVER || NULL == b->ear)
             continue;
         check_collisions_against(b);
     }
@@ -126,80 +129,87 @@ static void simple_test(unsigned n_bodies, unsigned n_iterations)
     bodies_destroy();
 }
 
+struct collide_testing_ear {
+    struct ear base;
+    bool collided;
+    struct body *body;
+};
+
+static enum handler_return basic_collision_test_fn(struct collide_testing_ear *us,
+                                            struct msg *m) {
+    note("%s called, %p %d", __func__, us, m->type);
+    if (m->type != MSG_COLLISION) return STATE_IGNORED;
+    us->collided = true;
+    return STATE_HANDLED;
+}
+
+static void construct_collide_testing_ear(struct collide_testing_ear *a, position p, float r)
+{
+    *a = (struct collide_testing_ear){
+        .base = {.handler = (msg_handler)basic_collision_test_fn},
+        .collided = false,
+        .body = body_new(p, r) };
+    a->body->ear = &a->base;
+}
+
 static void test_simple_collision_occurs(void)
 {
-    struct body *a, *b;
-    void fn(struct body *us, struct body *them) {
-        ok(us == a);
-        ok(them == b);
-        *(bool *)us->data = true;
+    struct collide_testing_ear a, b;
+    enum handler_return fn(struct collide_testing_ear *us, struct msg *m_) {
+        if (m_->type == MSG_COLLISION) {
+            struct collision_msg *m = (struct collision_msg *)m_;
+            ok(m->us == a.body);
+            ok(m->them == b.body);
+        }
+        return basic_collision_test_fn(us, m_);
     }
     bodies_init(2);
-    bool a_collided = false;
-    a = body_new(0., 10.);
-    ok(NULL != a);
-    a->data = &a_collided;
-    a->collision_fn = fn;
-    b = body_new(15., 10.);
-    ok(NULL != b);
+    construct_collide_testing_ear(&a, 0., 10.);
+    a.base.handler = (msg_handler)fn;
+    construct_collide_testing_ear(&b, 15., 10.);
     bodies_update(1.);
-    cmp_ok(a_collided, "==", false);
+    cmp_ok(a.collided, "==", false);
     for (int i = 5; i > 0; --i) {
-        b->impulses = -1.;
+        b.body->impulses = -1.;
         bodies_update(1.);
-        if (a_collided) goto end;
+        if (a.collided) goto end;
     }
     fail("Bodies didn't collide when they should have.");
-    DUMP_BODY(a);
-    DUMP_BODY(b);
+    DUMP_BODY(a.body);
+    DUMP_BODY(b.body);
 end:
     bodies_destroy();
 }
 
 static void test_specific_collision_regression_1(void)
 {
-    bool was_called = false;
-    struct body *a, *b;
-    void fn(struct body *us, struct body *them) {
-        fail("collision handler incorrectly called; parameters %p, %p", us, them);
-        *(bool *)us->data = true;
-    }
+    struct collide_testing_ear a, b;
     bodies_init(2);
-    a = body_new(0.135395 + I*0.587962, 0.000003);
-    a->collision_fn = fn;
-    a->data = &was_called;
-    b = body_new(0.098993 + I*0.551578, 0.000005);
-    b->collision_fn = fn;
-    b->data = &was_called;
+    construct_collide_testing_ear(&a, 0.135395 + I*0.587962, 0.000003);
+    construct_collide_testing_ear(&b, 0.098993 + I*0.551578, 0.000005);
     bodies_update(1.);
-    ok(!was_called);
+    ok(!a.collided && !b.collided);
     bodies_destroy();
 }
 
 static void test_specific_collision_regression_2(void)
 {
+    struct collide_testing_ear a, b;
     bool was_called_ab = false, was_called_ba = false;
-    struct body *a, *b;
-    void fn(struct body *us, struct body *them) {
-        bool *p = us->data;
-
-        if (us == a) {
-            ok(them == b);
-            ok(p == &was_called_ab);
-        } else if (us == b) {
-            ok(them == a);
-            ok(p == &was_called_ba);
-        } else
-            fail("collision handler incorrectly called with parameters %p, %p, %p", us, them);
-        *p = true;
+    enum handler_return fn(struct ear *us, struct msg *m_) {
+        if (m_->type == MSG_COLLISION) {
+            struct collision_msg *m = (struct collision_msg *)m_;
+            if (m->us == a.body) { ok(m->them == b.body); was_called_ab = true; }
+            else if (m->us == b.body) { ok(m->them == a.body); was_called_ba = true; }
+            else fail("collision handler incorrectly called");
+        }
+        return basic_collision_test_fn((struct collide_testing_ear *)us, m_);
     }
     bodies_init(2);
-    a = body_new(0.135395 + I*0.587962, 0.1);
-    a->collision_fn = fn;
-    a->data = &was_called_ab;
-    b = body_new(0.098993 + I*0.551578, 0.1);
-    b->collision_fn = fn;
-    b->data = &was_called_ba;
+    construct_collide_testing_ear(&a, 0.135395 + I*0.587962, 0.1);
+    a.base.handler = fn;
+    construct_collide_testing_ear(&b, 0.098993 + I*0.551578, 0.1);
+    b.base.handler = fn;
     bodies_update(1.);
     ok(was_called_ab);
     ok(was_called_ba);
@@ -208,42 +218,31 @@ static void test_specific_collision_regression_2(void)
 
 static void test_collides_never(void)
 {
-    bool did_collide = false;
-    void fn(struct body *us __attribute__((unused)),
-            struct body *them __attribute__((unused))) {
-        did_collide = true;
-    }
     bodies_init(2);
-    struct body *a, *b;
-    a = body_new(0., 1.);
-    a->collision_fn = fn;
-    b = body_new(0., 1.);
+    struct collide_testing_ear a;
+    construct_collide_testing_ear(&a, 0., 1.);
+    struct body *b = body_new(0., 1.);
     b->flags |= COLLIDES_NEVER;
     for (unsigned i = 0; i < 10; ++i)
         bodies_update(drand48());
     bodies_destroy();
-    ok(!did_collide);
+    ok(!a.collided);
 }
 
 
 static void test_offside(void)
 {
-    bool offside = false;
-    void fn(struct body *us __attribute__((unused)),
-            struct body *them __attribute__((unused))) {
-        offside = true;
-    }
     bodies_init(2);
     // Diagonal length plus a fuzz factor
     float radius = 10. + sqrtf(powf(viewport_w/2, 2)+powf(viewport_h/2,2));
-    struct body *a = body_new(viewport_w/2. + I*(viewport_h/2.), radius);
-    a->flags |= COLLIDES_INVERSE;
-    a->collision_fn = fn;
+    struct collide_testing_ear a;
+    construct_collide_testing_ear(&a, viewport_w/2. + I*(viewport_h/2.), radius);
+    a.body->flags |= COLLIDES_INVERSE;
     struct body *b = body_new(0., 10.);
     bodies_update(1.);
-    ok(!offside);
+    ok(!a.collided);
     int i = 0;
-    while (!offside && i < 40) {
+    while (!a.collided && i < 40) {
         b->impulses = -5.;
         bodies_update(1.);
         ++i;
@@ -254,21 +253,16 @@ static void test_offside(void)
 
 static void test_affiliation(void)
 {
-    bool did_collide = false;
-    void fn(struct body *us __attribute__((unused)),
-            struct body *them __attribute__((unused))) {
-        did_collide = true;
-    }
     bodies_init(2);
     body_new(0., 1.);
-    struct body *b = body_new(0., 1.);
-    b->flags |= COLLIDES_BY_AFFILIATION;
-    b->collision_fn = fn;
+    struct collide_testing_ear b;
+    construct_collide_testing_ear(&b, 0., 1.);
+    b.body->flags |= COLLIDES_BY_AFFILIATION;
     bodies_update(1.);
-    ok(!did_collide);
-    b->affiliation = 1;
+    ok(!b.collided);
+    b.body->affiliation = 1;
     bodies_update(1.);
-    ok(did_collide);
+    ok(b.collided);
     bodies_destroy();
 }
 
@@ -281,7 +275,7 @@ static void test_collision_flags(void)
 
 int main(void)
 {
-    plan(18);
+    plan(14);
     long seed = time(NULL);
     note("srand48(%ld)\n", seed);
     srand48(seed);
