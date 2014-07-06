@@ -1,4 +1,5 @@
 #include "msg.h"
+#include "ensure.h"
 #include <stddef.h>
 
 void ear_tell(struct ear *ear, struct msg *msg)
@@ -12,8 +13,8 @@ void ear_tell(struct ear *ear, struct msg *msg)
               enter = {.type = MSG_ENTER};
     (*s)(ear, &exit);
     if (NULL == ear->handler) return;
-    (ear->handler)(ear, &enter);
-    // XXX deal with return value of last handler?
+    r = (*ear->handler)(ear, &enter);
+    ENSURE(r == STATE_HANDLED || r == STATE_IGNORED);
 }
 
 
