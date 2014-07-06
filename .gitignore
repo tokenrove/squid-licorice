@@ -6,3 +6,22 @@
 
 # build output
 obj/
+t/*.t
+
+# gprof output
+gmon.out
+
+# gcov output
+*.gcda
+*.gcno
+
+# lcov output
+*.lcov-info
+coverage-report/
+
+# -fstack-usage output
+*.su
+
+# valgrind output
+callgrind.out.*
+cachegrind.out.*
