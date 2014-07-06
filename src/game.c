@@ -17,6 +17,7 @@
 #include "osd.h"
 #include "msg.h"
 #include "msg_macros.h"
+#include "game_constants.h"
 
 const int INITIAL_N_LIVES = 3;
 
@@ -27,6 +28,9 @@ struct game {
 enum outcome { NO_OUTCOME = 0, OUTCOME_QUIT, OUTCOME_OUT_OF_LIVES, OUTCOME_NEXT_LEVEL };
 
 enum { MAX_N_BODIES = 128, MAX_N_ACTORS = 64 };
+
+static struct archetype _archetypes[ARCHETYPE_LAST];
+struct archetype *global_archetypes = _archetypes;
 
 static enum handler_return handle_border_collision(struct ear *me __attribute__((unused)),
                                                    struct msg *msg)
@@ -69,7 +73,7 @@ static enum outcome inner_game_loop(strand self, struct game *game)
     bodies_init(MAX_N_BODIES);
     construct_border();
 
-    actors_init(MAX_N_ACTORS);
+    actors_init(MAX_N_ACTORS, global_archetypes, ARCHETYPE_LAST);
     struct level *level = level_load(game->level);
     ENSURE(level);
     osd_init();

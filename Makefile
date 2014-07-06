@@ -18,7 +18,7 @@ LDFLAGS_LIBS	:=`pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
 LDFLAGS		 = $(LDFLAGS_LIBS) $(LDFLAGS_$(CONFIGURATION))
 VPATH		:= src
 ENGINE_SRC	:= timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c utf8.c msg.c draw.c
-GAME_SRC	:= layer.c actor.c physics.c stage.c level.c game.c osd.c main.c
+GAME_SRC	:= layer.c actor.c physics.c stage.c level.c game.c osd.c main.c player.c enemy.c
 SRC		:= $(ENGINE_SRC) $(GAME_SRC)
 OBJECTS		:= $(addprefix obj/, $(SRC:.c=.o))
 DEPS		:= $(OBJECTS:%.o=%.d)

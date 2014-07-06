@@ -3,113 +3,17 @@
 #include "log.h"
 #include "ensure.h"
 #include "alloc_bitmap.h"
-#include "input.h"
+#include "msg_macros.h"
 
-enum {
-    AFFILIATION_ENEMY,
-    AFFILIATION_PLAYER
-};
-
-#define EV_SUPER(super_) (me->handler = super_, STATE_SUPER)
-
-struct player {
-    // weapons etc
-};
-
-static enum handler_return player_default(struct actor *me, struct event *e)
-{
-    switch (e->signal) {
-    case SIGNAL_TICK:
-        if (inputs[IN_UP])
-            me->body->impulses += -5.*inputs[IN_UP]*I;
-        if (inputs[IN_DOWN])
-            me->body->impulses += 5.*inputs[IN_DOWN]*I;
-        if (inputs[IN_LEFT])
-            me->body->impulses += -5.*inputs[IN_LEFT];
-        if (inputs[IN_RIGHT])
-            me->body->impulses += 5.*inputs[IN_RIGHT];
-        break;
-    default: break;
-    }
-    return STATE_IGNORED;
-}
-
-static enum handler_return player_initial(struct actor *me, struct event *e __attribute__((__unused__)))
-{
-    me->body->affiliation = AFFILIATION_PLAYER;
-    me->sprite.x = 0;
-    me->sprite.y = 0;
-    me->sprite.w = 29;
-    me->sprite.h = 51;
-    return me->handler = player_default, STATE_TRANSITION;
-}
-
-struct enemy_a {
-    unsigned *group_ctr;
-};
-
-static enum handler_return enemy_a_initial(struct actor *me, struct event *e)
-{
-    me->body->affiliation = AFFILIATION_ENEMY;
-    me->sprite.x = 58;
-    me->sprite.y = 0;
-    me->sprite.w = 26;
-    me->sprite.h = 24;
-    switch (e->signal) {
-    case SIGNAL_TICK: break;
-    case SIGNAL_OFFSIDE:
-        LOG("%p went offside", me);
-        break;
-    default: break;
-    }
-    return STATE_IGNORED;
-}
-
-struct archetype {
-    const char *atlas_path;
-    float collision_radius, mass;
-    state_handler initial_handler;
-    size_t state_size;
-} archetypes[] = {
-    { .atlas_path = "sprites.png",
-      .collision_radius = 20,
-      .mass = 30,
-      .initial_handler = player_initial,
-      .state_size = sizeof (struct player)
-    },
-    { .atlas_path = "sprites.png",
-      .collision_radius = 20,
-      .mass = 30,
-      .initial_handler = enemy_a_initial,
-      .state_size = sizeof (struct enemy_a)
-    }
-};
-
-bool actor_signal(struct actor *actor, struct event *event)
-{
-    state_handler s, t;
-    enum handler_return r;
-
-    t = actor->handler;
-    do {
-        s = actor->handler;
-        if (NULL == s) return false;
-        r = (*s)(actor, event);
-    } while (STATE_SUPER == r);
-    if (STATE_TRANSITION != r) return true;
-
-    struct event exit = {.signal = SIGNAL_EXIT},
-                enter = {.signal = SIGNAL_ENTER};
-    (*t)(actor, &exit);
-    if (NULL == actor->handler) return false;
-    r = (actor->handler)(actor, &enter);
-    return (NULL != actor->handler);
-}
-
+static struct archetype *archetypes;
+static size_t n_archetypes;
 static alloc_bitmap actors;
 
-void actors_init(size_t n)
+void actors_init(size_t n, struct archetype *as, size_t n_as)
 {
+    ENSURE(archetypes = as);
+    n_archetypes = n_as;
+    ENSURE(n_archetypes > 0);
     ENSURE(actors = alloc_bitmap_init(n, sizeof (struct actor)));
 }
 
@@ -138,10 +42,10 @@ void actors_update(float elapsed_time)
 {
     struct actor *a;
     struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(actors);
-    struct tick_event tick = {.super.signal = SIGNAL_TICK, .elapsed_time = elapsed_time};
+    struct tick_msg tick = {.super.type = MSG_TICK, .elapsed_time = elapsed_time};
     while((a = iter.next(&iter))) {
-        actor_signal(a, (struct event *)&tick);
-        if (!a->handler) {
+        TELL(a, &tick);
+        if (!a->base.handler) {
             destroy(a);
             iter.mark_for_removal(&iter);
         }
@@ -151,12 +55,12 @@ void actors_update(float elapsed_time)
 
 struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
 {
-    ENSURE(type < ARCHETYPE_LAST);
+    ENSURE(type < n_archetypes);
     struct archetype *arch = &archetypes[type];
     struct actor *a = (struct actor *)alloc_bitmap_alloc_first_free(actors);
     if (NULL == a) return NULL;
     *a = (struct actor){
-        .handler = arch->initial_handler,
+        .base.handler = arch->initial_handler,
         .state = state
     };
     a->sprite = (struct sprite) { .x = 0, .y = 0, .scaling = 1.f, .rotation = 0. };
@@ -168,6 +72,9 @@ struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
     a->sprite.h = a->sprite.atlas->height;
     ENSURE(a->body = body_new(p, arch->collision_radius));
     a->body->mass = arch->mass;
+    a->body->ear = &a->base;
+    struct msg enter = { .type = MSG_ENTER };
+    TELL(a, &enter);
     return a;
 }
 
@@ -177,28 +84,43 @@ struct actor *actor_spawn(enum actor_archetype type, position p, void *state)
 #include "camera.h"
 #include "physics.h"
 
+static enum handler_return
+do_nothing_handler(struct ear *me __attribute__((unused)),
+                   struct msg *m __attribute__((unused))) {
+    return STATE_IGNORED;
+}
+
+enum { N_TEST_ARCHETYPES = 1 };
+static struct archetype test_archetypes[N_TEST_ARCHETYPES] = {
+    { .atlas_path = "t/common.tiny-1x1.png",
+      .collision_radius = 20.,
+      .mass = 30.,
+      .initial_handler = (msg_handler)do_nothing_handler,
+      .state_size = 0 }
+};
+
 static void test_actors_basic_api()
 {
     note("Test basic API on actors for ordinary, successful cases");
     int n = 32;
     bodies_init(n);
-    actors_init(n);
+    actors_init(n, test_archetypes, N_TEST_ARCHETYPES);
     /* draw no one */
     actors_draw();
     actors_update(1.);
 
-    struct actor *a = actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL);
+    struct actor *a = actor_spawn(0, 0., NULL);
     for (int i = 1; i < n; ++i)
-        ok(NULL != actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL));
+        ok(NULL != actor_spawn(0, 0., NULL));
     // See what happens at the limits.  n should be a power of 2.
-    ok(NULL == actor_spawn(ARCHETYPE_WAVE_ENEMY, 0., NULL));
+    ok(NULL == actor_spawn(0, 0., NULL));
 
     actors_draw();
     actors_update(1.);
 
-    struct tick_event tick = { .super = { .signal = SIGNAL_TICK },
-                               .elapsed_time = 1. };
-    ok(actor_signal(a, (struct event *)&tick));
+    struct tick_msg tick = { .super.type = MSG_TICK, .elapsed_time = 1. };
+    TELL(a, &tick.super);
+    ok(NULL != a->base.handler);
 
     actors_draw();
     actors_update(1.);
@@ -216,6 +138,7 @@ int main(void)
     test_actors_basic_api();
     // TODO verify a placeholder sprite is used if texture fails to load
     // TODO verify a placeholder actor is used if archetype doesn't exist
+    // TODO construct an alternate archetypes table for testing
     done_testing();
 }
 #endif

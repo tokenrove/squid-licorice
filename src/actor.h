@@ -1,49 +1,27 @@
 #pragma once
 
+#include "msg.h"
 #include "sprite.h"
 #include "physics.h"
-
-enum actor_archetype {
-    ARCHETYPE_PLAYER1,
-    ARCHETYPE_WAVE_ENEMY,
-    ARCHETYPE_CIRCLING_ENEMY,
-    ARCHETYPE_LAST
-};
-
-typedef enum {
-    SIGNAL_ENTER,
-    SIGNAL_EXIT,
-    SIGNAL_TICK,
-    SIGNAL_COLLISION,
-    SIGNAL_OFFSIDE
-} signal_type;
-
-struct event {
-    signal_type signal;
-};
-
-struct tick_event {
-    struct event super;
-    float elapsed_time;
-};
-
-enum handler_return { STATE_SUPER, STATE_TRANSITION, STATE_HANDLED, STATE_IGNORED };
-
-struct actor;
-typedef enum handler_return (*state_handler)(struct actor *, struct event *);
+#include "game_constants.h"
 
 struct actor {
-    state_handler handler;
+    struct ear base;
     struct sprite sprite;
     struct body *body;
     void *state;
 };
 
-extern void actors_init(size_t n);
+struct archetype {
+    const char *atlas_path;
+    float collision_radius, mass;
+    msg_handler initial_handler;
+    size_t state_size;
+};
+
+extern void actors_init(size_t n, struct archetype *archetypes, size_t n_archetypes);
 extern void actors_destroy(void);
 extern void actors_draw(void);
 extern void actors_update(float elapsed_time);
 
 extern struct actor *actor_spawn(enum actor_archetype type, position p, void *state);
-// Returns whether this actor is still alive (true).
-extern bool actor_signal(struct actor *actor, struct event *event);
