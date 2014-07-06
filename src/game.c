@@ -56,6 +56,15 @@ static void construct_border(void)
     border.body->ear = &border.base;
 }
 
+#ifdef DEBUG
+#include "draw.h"
+
+static void draw_collision_region(struct body *b)
+{
+    draw_circle(b->p, b->collision_radius);
+}
+#endif
+
 static enum outcome inner_game_loop(strand self, struct game *game)
 {
     bodies_init(MAX_N_BODIES);
@@ -70,6 +79,9 @@ static enum outcome inner_game_loop(strand self, struct game *game)
     do {
         stage_draw();
         actors_draw();
+#ifdef DEBUG
+        bodies_foreach(draw_collision_region);
+#endif
         osd_draw();
 
         float elapsed_time = strand_yield(self);
