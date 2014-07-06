@@ -220,3 +220,24 @@ int main(void)
     done_testing();
 }
 #endif
+
+
+#ifdef PROFILE_ALLOC_BITMAP
+int main(void)
+{
+    size_t n = 1024*1024;
+
+    alloc_bitmap bm = alloc_bitmap_init(n, sizeof (size_t));
+    for (size_t i = 0; i < n; ++i) {
+        size_t *p = alloc_bitmap_alloc_first_free(bm);
+        *p = i;
+    }
+    struct alloc_bitmap_iterator it = alloc_bitmap_iterate(bm);
+    for (size_t i = 0; i < n; ++i) {
+        size_t *p = it.next(&it);
+        ENSURE(p && *p == i);
+    }
+    ENSURE(NULL == it.next(&it));
+    alloc_bitmap_destroy(bm);
+}
+#endif

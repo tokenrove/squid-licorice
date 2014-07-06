@@ -79,6 +79,12 @@ t/texture.t: src/texture.c src/log.c src/test_video.c src/gl.c
 t/tilemap.t: src/tilemap.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 t/utf8.t: src/utf8.c src/log.c
 
+
+CFLAGS_PROFILE  = -O3 -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE)
+LDFLAGS_PROFILE = -Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa
+obj/alloc_bitmap.profiling: src/alloc_bitmap.c src/log.c
+	$(CC) -DPROFILE_$(shell echo $(basename $(notdir $@)) | tr '[:lower:]' '[:upper:]') $(CFLAGS_PROFILE) -g -o $@ $^ $(LDFLAGS_PROFILE)
+
 test: check check-syntax
 
 check: $(TESTS)
