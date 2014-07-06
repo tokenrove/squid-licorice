@@ -15,6 +15,7 @@
 #include "actor.h"
 #include "log.h"
 #include "osd.h"
+#include "msg.h"
 
 const int INITIAL_N_LIVES = 3;
 
@@ -26,9 +27,40 @@ enum outcome { NO_OUTCOME = 0, OUTCOME_QUIT, OUTCOME_OUT_OF_LIVES, OUTCOME_NEXT_
 
 enum { MAX_N_BODIES = 128, MAX_N_ACTORS = 64 };
 
+static enum handler_return handle_border_collision(struct ear *me __attribute__((unused)),
+                                                   struct msg *msg)
+{
+    struct msg offside_msg = {.type = MSG_OFFSIDE};
+    switch (msg->type) {
+    case MSG_COLLISION: {
+        struct collision_msg *m = (struct collision_msg *)msg;
+        TELL(((struct collision_msg *)msg)->them->ear, &offside_msg);
+        return STATE_HANDLED;
+    }
+    default:
+        return STATE_IGNORED;
+    }
+}
+
+static struct {
+    struct ear base;
+    struct body *body;
+} border;
+
+static void construct_border(void)
+{
+    border.base.handler = handle_border_collision;
+    float screen_radius = 10. + sqrtf(powf(viewport_w/2, 2)+powf(viewport_h/2,2));
+    border.body = body_new(viewport_w/2. + I*(viewport_h/2.), screen_radius);
+    border.body->flags |= COLLIDES_INVERSE;
+    border.body->ear = &border.base;
+}
+
 static enum outcome inner_game_loop(strand self, struct game *game)
 {
     bodies_init(MAX_N_BODIES);
+    construct_border();
+
     actors_init(MAX_N_ACTORS);
     struct level *level = level_load(game->level);
     ENSURE(level);
