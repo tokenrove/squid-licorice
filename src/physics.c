@@ -4,6 +4,7 @@
 #include "ensure.h"
 #include "video.h"
 #include "inline_math.h"
+#include <math.h>
 
 static alloc_bitmap bodies;
 
@@ -18,12 +19,12 @@ void bodies_destroy(void)
     bodies = NULL;
 }
 
-struct body *body_new(position p, float collision_radius, float mass)
+struct body *body_new(position p, float collision_radius)
 {
     struct body *b = (struct body *)alloc_bitmap_alloc_first_free(bodies);
     *b = (struct body){.p = p,
                        .collision_radius = collision_radius,
-                       .mass = mass};
+                       .mass = 1.};
     return b;
 }
 
@@ -57,27 +58,17 @@ static void body_update(struct body *body, float dt)
  * - more shapes;
  * - restitution information
  */
-static void check_collisions_against(struct body *a, float dt)
+static void check_collisions_against(struct body *us)
 {
     struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bodies);
-    struct body *b;
-    while((b = iter.next(&iter))) {
-        if (a == b || NULL == a->collision_fn) continue;
-        float d = distance_squared(a->p, b->p);
-        float r = maxf(a->collision_radius, b->collision_radius);
+    struct body *them;
+    while((them = iter.next(&iter))) {
+        if (us == them || them->flags & COLLIDES_NEVER) continue;
+        float d = distance_squared(us->p, them->p);
+        float r = maxf(us->collision_radius, them->collision_radius);
         if (d < r*r)
-            (*a->collision_fn)(a, b, a->data);
+            (*us->collision_fn)(us, them, us->data);
     }
-}
-
-static void apply_offside_rule(struct body *b)
-{
-    if (crealf(b->p) < -b->collision_radius/2 ||
-        crealf(b->p) > viewport_w + b->collision_radius/2 ||
-        cimagf(b->p) < -b->collision_radius/2 ||
-        cimagf(b->p) > viewport_h + b->collision_radius/2)
-        if (b->collision_fn)
-            (*b->collision_fn)(b, NULL, b->data);
 }
 
 static void check_collisions(float dt)
@@ -85,8 +76,9 @@ static void check_collisions(float dt)
     struct alloc_bitmap_iterator iter = alloc_bitmap_iterate(bodies);
     struct body *b;
     while((b = iter.next(&iter))) {
-        apply_offside_rule(b);
-        check_collisions_against(b, dt);
+        if (b->flags & COLLIDES_NEVER || NULL == b->collision_fn)
+            continue;
+        check_collisions_against(b);
     }
 }
 
@@ -123,7 +115,7 @@ static void simple_test(unsigned n_bodies, unsigned n_iterations)
     bodies_init(n_bodies);
     for (unsigned i = 0; i < 2*n_bodies; ++i) {
         struct body *b;
-        b = body_new(random_position(), drand48()/n_bodies, drand48());
+        b = body_new(random_position(), drand48()/n_bodies);
         if (i%2) body_destroy(b);
     }
     for (unsigned i = 0; i < n_iterations; ++i)
@@ -141,11 +133,11 @@ static void test_simple_collision_occurs(void)
     }
     bodies_init(2);
     bool a_collided = false;
-    a = body_new(0., 10., 1.);
+    a = body_new(0., 10.);
     ok(NULL != a);
     a->data = &a_collided;
     a->collision_fn = fn;
-    b = body_new(15., 10., 1.);
+    b = body_new(15., 10.);
     ok(NULL != b);
     bodies_update(1.);
     cmp_ok(a_collided, "==", false);
@@ -170,10 +162,10 @@ static void test_specific_collision_regression_1(void)
         *(bool *)data = true;
     }
     bodies_init(2);
-    a = body_new(0.135395 + I*0.587962, 0.000003, 1.);
+    a = body_new(0.135395 + I*0.587962, 0.000003);
     a->collision_fn = fn;
     a->data = &was_called;
-    b = body_new(0.098993 + I*0.551578, 0.000005, 1.);
+    b = body_new(0.098993 + I*0.551578, 0.000005);
     b->collision_fn = fn;
     b->data = &was_called;
     bodies_update(1.);
@@ -199,16 +191,65 @@ static void test_specific_collision_regression_2(void)
         *p = true;
     }
     bodies_init(2);
-    a = body_new(0.135395 + I*0.587962, 0.1, 1.);
+    a = body_new(0.135395 + I*0.587962, 0.1);
     a->collision_fn = fn;
     a->data = &was_called_ab;
-    b = body_new(0.098993 + I*0.551578, 0.1, 1.);
+    b = body_new(0.098993 + I*0.551578, 0.1);
     b->collision_fn = fn;
     b->data = &was_called_ba;
     bodies_update(1.);
     ok(was_called_ab);
     ok(was_called_ba);
     bodies_destroy();
+}
+
+static void test_collides_never(void)
+{
+    bool did_collide = false;
+    void fn(struct body *us __attribute__((unused)),
+            struct body *them __attribute__((unused)),
+            void *data __attribute__((unused))) {
+        did_collide = true;
+    }
+    bodies_init(2);
+    struct body *a, *b;
+    a = body_new(0., 1.);
+    a->collision_fn = fn;
+    b = body_new(0., 1.);
+    b->flags |= COLLIDES_NEVER;
+    for (unsigned i = 0; i < 10; ++i)
+        bodies_update(drand48());
+    bodies_destroy();
+    ok(!did_collide);
+}
+
+static void test_collision_flags(void)
+{
+    test_collides_never();
+    // by affiliation
+    // inverse
+}
+
+static void test_offside(void)
+{
+    bool offside = false;
+    void fn(struct body *us, struct body *them, void *data __attribute__((unused))) {
+        offside = true;
+    }
+    bodies_init(2);
+    struct body *a = body_new(viewport_w/2. + I*(viewport_h/2.),
+                              sqrtf(powf(viewport_w/2, 2)+powf(viewport_h/2,2)));
+    a->flags |= COLLIDES_INVERSE;
+    a->collision_fn = fn;
+    struct body *b = body_new(0., 10.);
+    int i = 0;
+    while (!offside && i < 40) {
+        b->impulses = -5.;
+        bodies_update(1.);
+        ++i;
+    }
+    bodies_destroy();
+    cmp_ok(i, "==", 3);
 }
 
 int main(void)
@@ -220,6 +261,8 @@ int main(void)
     test_specific_collision_regression_1();
     test_specific_collision_regression_2();
     test_simple_collision_occurs();
+    test_collision_flags();
+    test_offside();
     lives_ok({simple_test(1000, 100);});
     done_testing();
 }
