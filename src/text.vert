@@ -22,7 +22,5 @@ void main()
                   0.0, 0.0, 0.0, 1.0);
 
     gl_Position = u_projection * (vec4(a_vertex, 0., 1.) * R * T * S);
-    v_texcoord = a_vertex + u_offset;
-    v_texcoord.x /= u_font_dims.x;
-    v_texcoord.y /= u_font_dims.y;
+    v_texcoord = (a_vertex + u_offset) / u_font_dims;
 }

@@ -19,6 +19,6 @@ void main()
                   0.0, 0.0, 1.0, 0.0,
                   0.0, 0.0, 0.0, 1.0);
 
-    gl_Position = u_projection * (vec4(a_vertex, 0., 1.) * R * T * S);
+    gl_Position = u_projection * (vec4(a_vertex, 0, 1) * R * T * S);
     v_texcoord = a_vertex;
 }

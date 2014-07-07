@@ -21,7 +21,5 @@ void main()
                   0.0, 0.0, 0.0, 1.0);
 
     gl_Position = u_projection * (vec4(a_vertex, 0., 1.) * R * T * S);
-    v_texcoord = a_vertex + u_clip.xy;
-    v_texcoord.x /= u_clip.z;
-    v_texcoord.y /= u_clip.w;
+    v_texcoord = (a_vertex + u_clip.xy) / u_clip.zw;
 }
