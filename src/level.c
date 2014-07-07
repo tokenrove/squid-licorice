@@ -86,7 +86,7 @@ static void level1_entry(strand self)
         struct actor *enemies[2];
         enemies[0] = actor_spawn(ARCHETYPE_WAVE_ENEMY, viewport_w/2. + I*50.f, &enemy_aux);
         enemies[1] = actor_spawn(ARCHETYPE_WAVE_ENEMY, viewport_w/2. - 100.f + I*50.f, &enemy_aux);
-        ++group_ctr;
+        group_ctr = 2;
         ease_to_scroll_speed(self, main_layer, 0.f, 6., easing_cubic);
         while (group_ctr > 0) strand_yield(self);
     }

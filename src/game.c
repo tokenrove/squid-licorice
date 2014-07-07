@@ -13,6 +13,7 @@
 #include "video.h"
 #include "physics.h"
 #include "actor.h"
+#include "projectile.h"
 #include "log.h"
 #include "osd.h"
 #include "msg.h"
@@ -27,7 +28,7 @@ struct game {
 
 enum outcome { NO_OUTCOME = 0, OUTCOME_QUIT, OUTCOME_OUT_OF_LIVES, OUTCOME_NEXT_LEVEL };
 
-enum { MAX_N_BODIES = 128, MAX_N_ACTORS = 64 };
+enum { MAX_N_BODIES = 128, MAX_N_ACTORS = 64, MAX_N_PROJECTILES = 64 };
 
 static struct archetype _archetypes[ARCHETYPE_LAST];
 struct archetype *global_archetypes = _archetypes;
@@ -71,6 +72,7 @@ static void draw_collision_region(struct body *b)
 static enum outcome inner_game_loop(strand self, struct game *game)
 {
     bodies_init(MAX_N_BODIES);
+    projectiles_init(MAX_N_PROJECTILES);
     construct_border();
 
     actors_init(MAX_N_ACTORS, global_archetypes, ARCHETYPE_LAST);
@@ -82,6 +84,7 @@ static enum outcome inner_game_loop(strand self, struct game *game)
     do {
         stage_draw();
         actors_draw();
+        projectiles_draw();
 #ifdef DEBUG
         bodies_foreach(draw_collision_region);
 #endif
@@ -105,6 +108,7 @@ static enum outcome inner_game_loop(strand self, struct game *game)
     osd_destroy();
     level_destroy(level);
     actors_destroy();
+    projectiles_destroy();
     bodies_destroy();
 
     return outcome;

@@ -18,7 +18,7 @@ LDFLAGS_LIBS	:=`pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
 LDFLAGS		 = $(LDFLAGS_LIBS) $(LDFLAGS_$(CONFIGURATION))
 VPATH		:= src
 ENGINE_SRC	:= timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c utf8.c msg.c draw.c point_sprite.c
-GAME_SRC	:= layer.c actor.c physics.c stage.c level.c game.c osd.c main.c player.c enemy.c
+GAME_SRC	:= layer.c actor.c physics.c stage.c level.c game.c osd.c main.c player.c enemy.c projectile.c
 SRC		:= $(ENGINE_SRC) $(GAME_SRC)
 OBJECTS		:= $(addprefix obj/, $(SRC:.c=.o))
 DEPS		:= $(OBJECTS:%.o=%.d)
@@ -56,7 +56,7 @@ vendor/glew/lib/libGLEW.a:
 ## compile it with -pg without adjusting the sizes in the test.
 ## Probably, the test itself should be more introspective to figure
 ## these things out.
-TESTS       := t/actor.t t/alloc_bitmap.t t/camera.t t/easing.t t/input.t t/layer.t t/msg.t t/physics.t t/point_sprite.t t/shader.t t/sprite.t t/strand.t t/text.t t/texture.t t/tilemap.t t/utf8.t
+TESTS       := t/actor.t t/alloc_bitmap.t t/camera.t t/easing.t t/input.t t/layer.t t/msg.t t/physics.t t/point_sprite.t t/projectile.t t/shader.t t/sprite.t t/strand.t t/text.t t/texture.t t/tilemap.t t/utf8.t
 CFLAGS_TEST  = -O3 -fprofile-arcs -ftest-coverage -fstack-usage -g -Ivendor/glew/include $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) -DDEBUG -DTESTING
 LDFLAGS_TEST = -Lvendor/glew/lib vendor/glew/lib/libGLEW.a $(LDFLAGS_LIBS) -Lvendor/libtap -ltap -lOSMesa -lgcov
 
@@ -72,6 +72,7 @@ t/layer.t: src/layer.c src/tilemap.c src/test_video.c src/gl.c src/camera.c src/
 t/msg.t: src/msg.c
 t/physics.t: src/physics.c src/alloc_bitmap.c src/log.c src/msg.c
 t/point_sprite.t: src/point_sprite.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
+t/projectile.t: src/projectile.c src/point_sprite.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c src/msg.c src/physics.c src/alloc_bitmap.c
 t/shader.t: src/shader.c src/log.c src/test_video.c src/gl.c
 t/sprite.t: src/sprite.c src/texture.c src/shader.c src/log.c src/camera.c src/test_video.c src/gl.c
 t/strand.t: src/strand.c
