@@ -66,7 +66,8 @@ def extract_tiles(pels, bpp, size, tile_size):
 
         # add row of tiles to map
         for x in range(0, size[0]):
-            assert len(tiles[x]) == tile_size[0]*tile_size[1]*bpp, '%d != %d' % (len(tiles[x]),tile_size[0]*tile_size[1]*bpp)
+            assert len(tiles[x]) == tile_size[0]*tile_size[1]*bpp, \
+                '%d != %d' % (len(tiles[x]), tile_size[0]*tile_size[1]*bpp)
             t = Tile(tiles[x])
             if not atlas.has_key(t):
                 atlas[t] = t
@@ -77,8 +78,11 @@ import sys, getopt
 if __name__ == "__main__":
     (opts, args) = getopt.getopt(sys.argv[1:], "w:h:", ["width=","height="])
     if len(args) != 3: raise Exception("Too few arguments")
-    # XXX use options
-    status = mortimer(*args)
+    tile_size = (16,16)
+    for (option,value) in opts:
+        if option == '-w': tile_size = (int(value), tile_size[1])
+        if option == '-h': tile_size = (tile_size[0], int(value))
+    status = mortimer(*args, tile_size=tile_size)
     print "success" if status else "failure"
     exit(status)
 
