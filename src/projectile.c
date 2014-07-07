@@ -148,7 +148,7 @@ int main(void)
 {
     video_init();
     camera_init();
-    plan(1);
+    plan(2);
     todo();
     projectile_fire_offside_verify_culled();
     // create projectile and verify it gets culled when offside

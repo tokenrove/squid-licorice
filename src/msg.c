@@ -6,6 +6,7 @@
 
 void ear_tell(struct ear *ear, struct msg *msg)
 {
+    if (NULL == ear) return;
     msg_handler s = ear->handler;
     if (NULL == s) return;
     enum handler_return r = (*s)(ear, msg);
