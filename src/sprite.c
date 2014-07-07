@@ -52,6 +52,7 @@ void sprite_draw(struct sprite *s, position p)
     glUniform1i(glGetUniformLocation(shader, "u_atlas"), 0);
     glUniform4f(glGetUniformLocation(shader, "u_clip"),
                 s->x, s->y, s->atlas->width, s->atlas->height);
+    glUniform1i(glGetUniformLocation(shader, "u_all_white"), s->all_white);
 
     const GLfloat vertices[] = { 0., 0., s->w, 0., s->w, s->h, 0., s->h };
     glBufferData(GL_ARRAY_BUFFER, sizeof (vertices), vertices, GL_DYNAMIC_DRAW);
@@ -62,13 +63,41 @@ void sprite_draw(struct sprite *s, position p)
 
 #ifdef UNIT_TEST_SPRITE
 #include "libtap/tap.h"
+#include "video.h"
+#include "camera.h"
+#include "test_video.h"
+
+static void test_basic_output(void)
+{
+    struct sprite sprite_a, sprite_b;
+    note("Testing basic shader output");
+    struct texture t;
+    sprite_a = (struct sprite){.x = 0, .y = 0, .w = 16, .h = 16, .scaling = 1., .atlas = &t };
+    sprite_b = (struct sprite){.x = 16, .y = 0, .w = 16, .h = 16, .scaling = 1., .atlas = &t };
+    ok(texture_from_png(&t, "t/sprite.t-0.png"));
+    video_start_frame();
+    position p = I*64;
+    sprite_draw(&sprite_a, p);
+    sprite_draw(&sprite_a, 32.+p);
+    sprite_draw(&sprite_b, 64.+p);
+    sprite_b.all_white = true;
+    sprite_draw(&sprite_b, 96.+p);
+    sprite_b.all_white = false;
+    p = I*128;
+    for (int i = 0; i < viewport_w; ++i)
+        sprite_draw((i%2) ? &sprite_a : &sprite_b, p+i);
+    video_end_frame();
+    ok(test_video_compare_fb_with_file("t/sprite.t-0.640x480.png"));
+    texture_destroy(sprite_a.atlas);
+}
 
 int main(void)
 {
-    plan(1);
-    todo();
-    pass();
-    end_todo;
+    video_init();
+    camera_init();
+    sprite_init();
+    plan(4);
+    test_basic_output();
     done_testing();
 }
 #endif
