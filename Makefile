@@ -90,6 +90,9 @@ test: check check-syntax
 check: $(TESTS)
 	MESA_DEBUG=1 prove
 
+check-with-valgrind: $(TESTS)
+	MESA_DEBUG=1 prove -e 'valgrind --error-exitcode=1'
+
 # This is a huge pain in the ass
 coverage: clean
 	$(RM) -r coverage-report *.lcov-info
