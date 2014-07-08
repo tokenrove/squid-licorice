@@ -30,20 +30,30 @@ static enum handler_return enemy_explode(struct actor *me, struct msg *e)
     }
 }
 
+#include <math.h>
+
+static void die(struct enemy_a *state)
+{
+    if (*state->group_ctr > 0)
+        --*state->group_ctr;
+    else
+        LOG_DEBUG("Enemy's group counter already zero");
+}
+
 static enum handler_return enemy_a_initial(struct actor *me, struct msg *e)
 {
     switch (e->type) {
     default: break;
-    case MSG_TICK: return STATE_HANDLED;
-    case MSG_DAMAGE: {
-        struct enemy_a *state = me->state;
-        if (*state->group_ctr > 0)
-            --*state->group_ctr;
-        else
-            LOG_DEBUG("Enemy's group counter already zero");
-        return XITION(enemy_explode);
+    case MSG_TICK: {
+        float t = ((struct tick_msg *)e)->elapsed_time;
+        me->body->impulses = (100.*t*I) + 100.*t*sinf(cimagf(me->body->p)/100);
+        return STATE_HANDLED;
     }
+    case MSG_DAMAGE:
+        die(me->state);
+        return XITION(enemy_explode);
     case MSG_OFFSIDE:
+        die(me->state);
         return XITION(NULL);
     case MSG_COLLISION: {
         struct damage_msg dm = { .base.type = MSG_DAMAGE, .amount = 1 };
