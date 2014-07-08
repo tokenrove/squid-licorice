@@ -56,6 +56,7 @@ static void construct_border(void)
     border.base.handler = handle_border_collision;
     float screen_radius = 10. + sqrtf(powf(viewport_w/2, 2)+powf(viewport_h/2,2));
     border.body = body_new(viewport_w/2. + I*(viewport_h/2.), screen_radius);
+    border.body->affiliation = AFFILIATION_BORDER;
     border.body->flags |= COLLIDES_INVERSE;
     border.body->ear = &border.base;
 }

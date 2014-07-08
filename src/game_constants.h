@@ -4,7 +4,8 @@
 
 enum {
     AFFILIATION_ENEMY,
-    AFFILIATION_PLAYER
+    AFFILIATION_PLAYER,
+    AFFILIATION_BORDER
 };
 
 enum actor_archetype {
