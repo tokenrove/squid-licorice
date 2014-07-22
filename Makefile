@@ -96,14 +96,15 @@ check-with-valgrind: $(TESTS)
 	MESA_DEBUG=1 prove -e 'valgrind --error-exitcode=1'
 
 # This is a huge pain in the ass
+LCOVFLAGS := --rc lcov_branch_coverage=1
 coverage: clean
 	$(RM) -r coverage-report *.lcov-info
-	lcov -d . --zerocounters
+	lcov $(LCOVFLAGS) -d . --zerocounters
 	for i in $(TESTS); do \
-	  $(MAKE) $$i && ./$$i ; lcov -c -d . -o $$(basename $$i).lcov-info ; \
+	  $(MAKE) $$i && ./$$i ; lcov $(LCOVFLAGS) -c -d . -o $$(basename $$i).lcov-info ; \
 	done
-	lcov $$(for i in *.lcov-info; do echo -a $$i; done) -o total.lcov-info
-	genhtml total.lcov-info --output-directory coverage-report
+	lcov $(LCOVFLAGS) $$(for i in *.lcov-info; do echo -a $$i; done) -o total.lcov-info
+	genhtml $(LCOVFLAGS) total.lcov-info --output-directory coverage-report
 
 # XXX use scan-build make instead?
 check-syntax: $(SRC)
