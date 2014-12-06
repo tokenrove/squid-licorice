@@ -6,12 +6,12 @@ CLANG		?= clang
 
 .SHELLFLAGS	:= -ec
 PACKAGES	:= sdl2 gl glu glew
-CFLAGS_WARN	:= -Wall -Wextra -Wshadow -Winit-self -Wwrite-strings -Wswitch -Wswitch-default -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wformat-security -fstrict-aliasing -Wstrict-aliasing
+CFLAGS_WARN	:= -Wall -Wextra -Wshadow -Winit-self -Wwrite-strings -Wswitch -Wpointer-arith -Wcast-qual -Wmissing-prototypes -Wformat-security -fstrict-aliasing -Wstrict-aliasing
 CFLAGS_INCLUDE	:= -Ivendor -Iobj `pkg-config --cflags $(PACKAGES)`
 CFLAGS_BASE	:= -fms-extensions -std=gnu11
 CFLAGS_RELEASE	:= -O3
 CFLAGS_DEBUG	:= -g -pg -DDEBUG
-CFLAGS		 = $(CFLAGS_WARN) $(CFLAGS_BASE) $(CFLAGS_INCLUDE) $(CFLAGS_$(CONFIGURATION))
+CFLAGS		 = $(CFLAGS_WARN) -Wswitch-default $(CFLAGS_BASE) $(CFLAGS_INCLUDE) $(CFLAGS_$(CONFIGURATION))
 LDFLAGS_DEBUG	:=
 LDFLAGS_RELEASE :=-fwhole-program
 LDFLAGS_LIBS	:=`pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
@@ -89,11 +89,13 @@ obj/alloc_bitmap.profiling: src/alloc_bitmap.c src/log.c
 
 test: check check-syntax
 
+PROVE ?= MESA_DEBUG=1 LD_LIBRARY_PATH=vendor/glew/lib prove
+
 check: $(TESTS)
-	MESA_DEBUG=1 prove
+	$(PROVE)
 
 check-with-valgrind: $(TESTS)
-	MESA_DEBUG=1 prove -e 'valgrind --error-exitcode=1'
+	$(PROVE) -e 'valgrind --error-exitcode=1'
 
 # This is a huge pain in the ass
 LCOVFLAGS := --rc lcov_branch_coverage=1
