@@ -14,10 +14,10 @@ CFLAGS_DEBUG	:= -g -pg -DDEBUG
 CFLAGS		 = $(CFLAGS_WARN) -Wswitch-default $(CFLAGS_BASE) $(CFLAGS_INCLUDE) $(CFLAGS_$(CONFIGURATION))
 LDFLAGS_DEBUG	:=
 LDFLAGS_RELEASE :=-fwhole-program
-LDFLAGS_LIBS	:=`pkg-config --libs $(PACKAGES)` -lpnglite -lz -lm
+LDFLAGS_LIBS	:=`pkg-config --libs $(PACKAGES)` -lSDL2_mixer -lpnglite -lz -lm
 LDFLAGS		 = $(LDFLAGS_LIBS) $(LDFLAGS_$(CONFIGURATION))
 VPATH		:= src
-ENGINE_SRC	:= timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c utf8.c msg.c draw.c point_sprite.c
+ENGINE_SRC	:= timer.c texture.c shader.c tilemap.c sprite.c text.c video.c gl.c strand.c input.c camera.c easing.c alloc_bitmap.c log.c utf8.c msg.c draw.c point_sprite.c audio.c music.c sfx.c
 GAME_SRC	:= layer.c actor.c physics.c stage.c level.c game.c osd.c main.c player.c enemy.c projectile.c
 SRC		:= $(ENGINE_SRC) $(GAME_SRC)
 OBJECTS		:= $(addprefix obj/, $(SRC:.c=.o))

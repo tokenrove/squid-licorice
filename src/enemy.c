@@ -3,6 +3,7 @@
 #include "msg_macros.h"
 #include "projectile.h"
 #include "log.h"
+#include "sfx.h"
 
 struct enemy_a {
     unsigned *group_ctr;
@@ -26,6 +27,7 @@ static enum handler_return enemy_explode(struct actor *me, struct msg *e)
         me->sprite.w = 26;
         me->sprite.h = 24;
         ((struct enemy_a *)me->state)->frame_ctr = .5;
+        sfx_play_oneshot(SFX_SMALL_EXPLOSION);
         return STATE_HANDLED;
     }
 }
