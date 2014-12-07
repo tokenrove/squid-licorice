@@ -61,9 +61,9 @@ static void level1_entry(strand self)
     };
 
     // load chunks
-    ENSURE(tilemap_load("slice1a.map", "slice1a.png", &slices[0]));
-    ENSURE(tilemap_load("slice1b.map", "slice1b.png", &slices[1]));
-    ENSURE(tilemap_load("slice1c.map", "slice1c.png", &slices[2]));
+    ENSURE(tilemap_load("data/slice1.map", "data/slice1.png", &slices[0]));
+    ENSURE(tilemap_load("data/slice2.map", "data/slice2.png", &slices[1]));
+    ENSURE(tilemap_load("data/slice3.map", "data/slice3.png", &slices[2]));
 
     struct layer *main_layer = layer_new(SCROLL_UP, next, &context);
     stage_add_layer(main_layer);

@@ -75,14 +75,14 @@ __attribute__ ((constructor))
 static void populate_archetypes(void)
 {
     global_archetypes[ARCHETYPE_WAVE_ENEMY] = (struct archetype){
-        .atlas_path = "sprites.png",
+        .atlas_path = "data/sprites.png",
         .collision_radius = 20.,
         .mass = 30.,
         .initial_handler = (msg_handler)enemy_a_initial,
         .state_size = sizeof (struct enemy_a)
     };
     global_archetypes[ARCHETYPE_CIRCLING_ENEMY] = (struct archetype){
-        .atlas_path = "sprites.png",
+        .atlas_path = "data/sprites.png",
         .collision_radius = 20.,
         .mass = 30.,
         .initial_handler = (msg_handler)enemy_a_initial,

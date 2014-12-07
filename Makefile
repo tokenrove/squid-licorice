@@ -1,4 +1,4 @@
-.PHONY: clean all test check check-syntax coverage
+.PHONY: clean all test check check-syntax coverage assets
 
 CONFIGURATION	?= DEBUG
 CC		?= gcc
@@ -24,7 +24,16 @@ OBJECTS		:= $(addprefix obj/, $(SRC:.c=.o))
 DEPS		:= $(OBJECTS:%.o=%.d)
 CLEAN		 = $(OBJECTS) $(DEPS) obj/squid $(TESTS)
 
-all: obj/squid check
+all: obj/squid assets check
+
+obj/:
+	mkdir -p obj/
+t/:
+	mkdir -p t/
+data/:
+	mkdir -p data/
+
+#### OBJ/SQUID: MAIN EXECUTABLE
 
 src/tilemap.c: obj/tilemap.vert.i obj/tilemap.frag.i
 src/text.c: obj/text.vert.i obj/text.frag.i
@@ -35,11 +44,6 @@ src/point_sprite.c: obj/point_sprite.vert.i obj/point_sprite.frag.i
 obj/squid: $(OBJECTS) | obj/
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-obj/:
-	mkdir -p obj/
-t/:
-	mkdir -p t/
-
 obj/%.o: src/%.c | obj/
 	$(CC) -MD -c $(CFLAGS) -o $@ $<
 obj/%.vert.i: src/%.vert
@@ -47,10 +51,31 @@ obj/%.vert.i: src/%.vert
 obj/%.frag.i: src/%.frag
 	xxd -i < $< > $@
 
+#### LIBRARIES
+
 vendor/libtap/libtap.a:
 	$(MAKE) -C vendor/libtap
 vendor/glew/lib/libGLEW.a:
 	$(MAKE) -C vendor/glew SYSTEM=linux-osmesa extensions all
+
+#### ASSETS
+
+STATIC_TEXTURES := data/projectiles.png data/sprites.png
+SLABS := slice1 slice2 slice3
+FONTS := osd
+
+assets: data/ $(STATIC_TEXTURES) $(addprefix data/,$(addsuffix .map,$(SLABS)) $(addsuffix .map,$(SLABS))) $(addprefix data/,$(addsuffix .fnt,$(FONTS)))
+
+data/%.png: art/static/%.png
+	pngcrush -c 6 -brute $< $@
+
+data/%.map data/%.png: art/slab/%.png
+	python mortimer2.py $< $(basename $@).map $(basename $@).png
+
+data/%.fnt data/%.png: art/font/%.fnt art/font/%.png
+	ln $^ data/
+
+#### TESTS
 
 ## NB: Because strand.t is very sensative to stack usage, do not
 ## compile it with -pg without adjusting the sizes in the test.
@@ -97,6 +122,8 @@ check: $(TESTS)
 check-with-valgrind: $(TESTS)
 	$(PROVE) -e 'valgrind --error-exitcode=1'
 
+#### COVERAGE
+
 # This is a huge pain in the ass
 LCOVFLAGS := --rc lcov_branch_coverage=1
 coverage: clean
@@ -112,6 +139,8 @@ coverage: clean
 check-syntax: $(SRC)
 	$(CC) $(CFLAGS) -pedantic -Werror -fsyntax-only $^
 	$(CLANG) --analyze -Weverything -Wextra -Werror -pedantic $(CFLAGS_INCLUDE) $^
+
+#### CLEAN AND DEPS
 
 clean:
 	$(RM) $(CLEAN)

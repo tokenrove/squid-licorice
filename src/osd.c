@@ -14,7 +14,7 @@ static char fps_output[6] = {0};
 
 void osd_init(void)
 {
-    ENSURE(text_load_font(&font, "myfont"));
+    ENSURE(text_load_font(&font, "data/osd"));
     accumulated_time = 0.;
 }
 

@@ -44,7 +44,7 @@ __attribute__ ((constructor))
 static void populate_archetypes(void)
 {
     global_archetypes[ARCHETYPE_PLAYER1] = (struct archetype){
-        .atlas_path = "sprites.png",
+        .atlas_path = "data/sprites.png",
         .collision_radius = 20.,
         .mass = 30.,
         .initial_handler = (msg_handler)player_initial,

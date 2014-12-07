@@ -27,7 +27,7 @@ static position *pos_batch;
 void projectiles_init(size_t n)
 {
     point_sprite_init();
-    ENSURE(texture_from_png(&atlas, "projectiles-1.png"));
+    ENSURE(texture_from_png(&atlas, "data/projectiles.png"));
     ring_size = closest_power_of_2(n);
     ENSURE(projectiles = calloc(ring_size, sizeof (*projectiles)));
     ENSURE(pos_batch = calloc(ring_size, sizeof (*pos_batch)));
