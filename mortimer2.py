@@ -84,7 +84,7 @@ if __name__ == "__main__":
         if option == '-h': tile_size = (tile_size[0], int(value))
     status = mortimer(*args, tile_size=tile_size)
     print "success" if status else "failure"
-    exit(status)
+    exit(0 if status else 1)
 
 ### TESTS
 # verify that an empty image produces a map of all zeros
