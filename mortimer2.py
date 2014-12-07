@@ -20,6 +20,7 @@ def mortimer(input_image_name, map_out_name, atlas_out_name, tile_size = (16,16)
     slab = PIL.Image.open(input_image_name)
     if ALWAYS_CONVERT_INDEXED_IMAGES: slab = slab.convert()
     (width_in_tiles,height_in_tiles) = map(operator.div, slab.size, tile_size)
+    print "w/h in tiles: %d, %d; max tiles: %d" % (width_in_tiles,height_in_tiles, width_in_tiles*height_in_tiles)
     if not all(map(lambda x,y:x%y==0, slab.size, tile_size)): raise Exception("Slab doesn't match tile sizes")
     pels = slab.tobytes()
     bpp = {'P':1, 'RGB':3, 'RGBA':4}[slab.mode]
