@@ -4,6 +4,7 @@
 #include "input.h"
 #include "game_constants.h"
 #include "projectile.h"
+#include "sfx.h"
 
 struct player {
     // weapons etc
@@ -28,8 +29,10 @@ static enum handler_return player_initial(struct actor *me, struct msg *e)
             me->body->impulses += -5.*inputs[IN_LEFT];
         if (inputs[IN_RIGHT])
             me->body->impulses += 5.*inputs[IN_RIGHT];
-        if (inputs[IN_SHOOT] == JUST_PRESSED)
+        if (inputs[IN_SHOOT] == JUST_PRESSED) {
             projectile_shoot_at(me->body->p, me->body->p - I*10., PROJECTILE_BULLET, AFFILIATION_PLAYER);
+            sfx_play_oneshot(SFX_PLAYER_BULLET);
+        }
 
         return STATE_HANDLED;
     case MSG_OFFSIDE:

@@ -8,6 +8,7 @@
 #include "stage.h"
 #include "video.h"
 #include "actor.h"
+#include "music.h"
 
 #include <SDL2/SDL.h>
 
@@ -60,6 +61,12 @@ static void level1_entry(strand self)
         };
     };
 
+    // load music and cue playback
+    music_handle level_music, boss_music;
+    ENSURE(level_music = music_load("mus/level1.ogg"));
+    ENSURE(boss_music = music_load("mus/boss.ogg"));
+    music_play(level_music);
+
     // load chunks
     ENSURE(tilemap_load("data/slice1.map", "data/slice1.png", &slices[0]));
     ENSURE(tilemap_load("data/slice2.map", "data/slice2.png", &slices[1]));
@@ -87,11 +94,17 @@ static void level1_entry(strand self)
         enemies[0] = actor_spawn(ARCHETYPE_WAVE_ENEMY, viewport_w/2. + I*50.f, &enemy_aux);
         enemies[1] = actor_spawn(ARCHETYPE_WAVE_ENEMY, viewport_w/2. - 100.f + I*50.f, &enemy_aux);
         group_ctr = 2;
-        ease_to_scroll_speed(self, main_layer, 0.f, 6., easing_cubic);
         while (group_ctr > 0) strand_yield(self);
     }
 
-    wait_for_elapsed_time(self, 10.);
+    music_play(boss_music);
+    ease_to_scroll_speed(self, main_layer, 0.f, 6., easing_cubic);
+    wait_for_elapsed_time(self, 5.);
+
+    music_fade_out(5.);
+    wait_for_elapsed_time(self, 5.);
+    music_destroy(boss_music);
+    music_destroy(level_music);
 
     layer_destroy(main_layer);
     for (int i = 0; i < 3; ++i)

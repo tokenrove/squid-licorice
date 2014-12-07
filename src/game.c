@@ -1,24 +1,28 @@
 
 #include <math.h>
+
+#include "actor.h"
+#include "audio.h"
 #include "camera.h"
+#include "ensure.h"
 #include "game.h"
+#include "game_constants.h"
 #include "input.h"
 #include "level.h"
+#include "log.h"
+#include "main.h"
+#include "msg.h"
+#include "msg_macros.h"
+#include "music.h"
+#include "osd.h"
+#include "physics.h"
+#include "projectile.h"
+#include "sfx.h"
+#include "stage.h"
 #include "strand.h"
 #include "text.h"
 #include "tilemap.h"
-#include "ensure.h"
-#include "stage.h"
-#include "main.h"
 #include "video.h"
-#include "physics.h"
-#include "actor.h"
-#include "projectile.h"
-#include "log.h"
-#include "osd.h"
-#include "msg.h"
-#include "msg_macros.h"
-#include "game_constants.h"
 
 const int INITIAL_N_LIVES = 3;
 
@@ -98,6 +102,12 @@ static enum outcome inner_game_loop(strand self, struct game *game)
         actors_update(elapsed_time);
         osd_update(elapsed_time);
 
+        if (audio_is_available()) {
+            music_update(elapsed_time);
+            sfx_update(elapsed_time);
+            audio_update(elapsed_time);
+        }
+
         if (inputs[IN_MENU]) world_camera.scaling += 0.01f;
         if (inputs[IN_QUIT])
             outcome = OUTCOME_QUIT;
@@ -157,5 +167,11 @@ void game_entry_point(strand self)
     tilemap_init();
     text_init();
     sprite_init();
+    if (audio_init()) {
+        sfx_init();
+        music_init();
+        sfx_enum all_sfx[] = { SFX_PLAYER_BULLET, SFX_SMALL_EXPLOSION, SFX_NONE };
+        sfx_load(all_sfx);
+    }
     main_menu_loop(self);
 }
