@@ -1,0 +1,11 @@
+sudo: required
+language: c
+compiler: gcc-4.8
+before_install:
+  - yes | sudo add-apt-repository ppa:zoogie/sdl2-snapshots
+  - yes | sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+install:
+  - sudo apt-get install -qq libsdl2-dev libsdl2-mixer-dev libglew-dev libpnglite-dev libc6-dev gcc-4.8 pngcrush python-imaging libosmesa6-dev
+script:
+  - make all
