@@ -22,7 +22,7 @@ def mortimer(input_image_name, map_out_name, atlas_out_name, tile_size = (16,16)
     (width_in_tiles,height_in_tiles) = map(operator.div, slab.size, tile_size)
     print "w/h in tiles: %d, %d; max tiles: %d" % (width_in_tiles,height_in_tiles, width_in_tiles*height_in_tiles)
     if not all(map(lambda x,y:x%y==0, slab.size, tile_size)): raise Exception("Slab doesn't match tile sizes")
-    pels = slab.tobytes()
+    pels = slab.tostring()
     bpp = {'P':1, 'RGB':3, 'RGBA':4}[slab.mode]
     (map_of_ptrs, atlas) = extract_tiles(pels, bpp, (width_in_tiles,height_in_tiles), tile_size)
     print "%d tiles" % len(atlas.keys())
@@ -49,7 +49,7 @@ def create_atlas_image(atlas, tile_size, mode, bpp):
     assert ordered_atlas[-1].idx == len(ordered_atlas)-1
     p = reduce(lambda p,x: p+x.data, ordered_atlas, '')
     assert len(p) == bpp*tile_size[0]*tile_size[1]*len(ordered_atlas), "p was %d, oa was %d" % (len(p), len(ordered_atlas))
-    return PIL.Image.frombytes(mode=mode, size=(tile_size[0], tile_size[1]*len(ordered_atlas)), data=p)
+    return PIL.Image.fromstring(mode=mode, size=(tile_size[0], tile_size[1]*len(ordered_atlas)), data=p)
 
 def extract_row_of_tiles(pels, w, ch, th):
     tiles = [''] * w
