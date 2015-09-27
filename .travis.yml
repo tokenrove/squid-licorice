@@ -6,6 +6,9 @@ before_install:
   - yes | sudo add-apt-repository ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
 install:
-  - sudo apt-get install -qq libsdl2-dev libsdl2-mixer-dev libglew-dev libpnglite-dev libc6-dev gcc-4.8 pngcrush python-imaging libosmesa6-dev
+  - sudo apt-get install -qq libsdl2-dev libsdl2-mixer-dev libglew-dev libpnglite-dev libc6-dev gcc-4.8 pngcrush python-imaging libosmesa6-dev lcov
+  - gem install coveralls-lcov
 script:
   - make all
+  - make coverage
+  - coveralls-lcov total.lcov-info
