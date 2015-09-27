@@ -8,10 +8,13 @@
 
 static inline void verbose_abort(const char *, const char *, const char *, const char *)  __attribute__ ((noreturn));
 static inline void verbose_abort(const char *fl, const char *fn, const char *s, const char *extra) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
      write(2, fl, strlen(fl)); write(2, fn, strlen(fn)); write(2, s, strlen(s));
      if (extra != NULL) write(2, extra, strlen(extra));
      write(2, "\n", 1);
      abort(); _exit(-1);
+#pragma GCC diagnostic pop
 }
 #define STRINGIFY_PRIME(x) #x
 #define STRINGIFY(x) STRINGIFY_PRIME(x)
