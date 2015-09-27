@@ -195,10 +195,12 @@ static void test_too_small_stack(void)
         space[19] = 42;
         fprintf(stderr, "space[19] == %d\n", space[19]);
     };
+    todo();
     dies_ok({
             strand a = strand_spawn_0(fn_a, 10);
             ENSURE(a);
         }, "Not enough space to begin with");
+    end_todo;
     void fn_b(strand self) {
         strand_yield(self);
         fn_b(self);
